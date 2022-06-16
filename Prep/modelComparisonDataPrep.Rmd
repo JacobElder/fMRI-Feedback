@@ -1,0 +1,935 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+#setwd("~/Downloads/RLModels/")
+
+library(geoR)
+library(optimx)
+library(ggplot2)
+library(compiler)
+library(parallel)
+library(doParallel)
+library(igraph)
+library(tidyverse)
+```
+
+```{r}
+setwd("~/Google Drive/Volumes/")
+allCents <- read.csv("./Research Project/Trait Network_Behaviral/generating network/output/allPosCents.csv")
+fullDf <- read.csv("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/fullDf.csv")
+posDf <- read.csv("./Research Project/Trait Network_Behaviral/generating network/output/adjacencyMatrix_p.csv")
+posMat <- as.matrix(posDf)
+posGraph <- graph.adjacency(posMat)
+
+posDfold <- read.csv("./Research Project/Trait Network_Behaviral/generating network/output/adjacencyMatrix_pOLD.csv")
+posMatold <- as.matrix(posDfold)
+posGraphold <- graph.adjacency(posMatold)
+
+names(allCents)[colnames(allCents)=="trait"] <- "Trait"
+fullDf <- merge(fullDf, allCents, by="Trait")
+```
+
+```{r}
+#setwd("/Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/")
+setwd("~/Google Drive/Volumes/")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/Base.TD.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/TD.AsymLR.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphOutExp.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphProp.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphPropComm.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphPropSim.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphPropSimNW.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphPropDegMeta.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphPropFam.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphExp.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphExp2.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphExpNW.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphExpNWfix.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphExpNeighExt.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphExpNeighExtOutSup.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphOutExpAsym.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphOutExpOutLR.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphExpFSDec.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphExpDec.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphExpFS.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/simL.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphSim.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphMix.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphMix_OutModPE.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphMixDec.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphMix_OutMod.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphMix_FS_OutModPE.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphMix_FS.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphMix_FS_OutBias.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphSimFree.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/graphMixAdd.R")
+source("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/entropy.R")
+
+cBase.TD <- cmpfun(Base.TD)
+cTD.AsymLR <- cmpfun(TD.AsymLR)
+cGraphOutExp <- cmpfun(graphOutExp)
+cGraphExp <- cmpfun(graphExp)
+cGraphExp2 <- cmpfun(graphExp2)
+cGraphProp <- cmpfun(graphProp)
+cGraphPropComm <- cmpfun(graphPropComm)
+cGraphPropFam <- cmpfun(graphPropFam)
+cGraphPropSim <- cmpfun(graphPropSim)
+cGraphPropSimNW <- cmpfun(graphPropSimNW)
+cGraphPropDegMeta <- cmpfun(graphPropDegMeta)
+cGraphOutExpAsym <- cmpfun(graphOutExpAsym)
+cGraphOutExpOutLR <- cmpfun(graphOutExpOutLR)
+cOptimx <- cmpfun(optimx)
+cGraphExpFSDec <- cmpfun(graphExpFSDec)
+cGraphExpDec <- cmpfun(graphExpDec)
+cGraphExpFS <- cmpfun(graphExpFS)
+cGraphExpNW <- cmpfun(graphExpNW)
+cGraphExpNWfix <- cmpfun(graphExpNWfix)
+cGraphExpNeighExt <- cmpfun(graphExpNeighExt)
+cGraphExpNeighExtOutSup <- cmpfun(graphExpNeighExtOutSup)
+cSimL <- cmpfun(simL)
+cGraphSim <- cmpfun(graphSim)
+cGraphMix <- cmpfun(graphMix)
+cGraphMixDec <- cmpfun(graphMixDec)
+cGraphMix_OutMod <- cmpfun(graphMix_OutMod)
+cGraphMix_OutModPE <- cmpfun(graphMix_OutModPE)
+cGraphMix_FS_OutModPE <- cmpfun(graphMix_FS_OutModPE)
+cGraphMix_FS <- cmpfun(graphMix_FS)
+cGraphMix_FS_OutBias <- cmpfun(graphMix_FS_OutBias)
+cGraphMixAdd <- cmpfun(graphMixAdd)
+cGraphSimFree <- cmpfun(graphSimFree)
+```
+
+```{r}
+
+  set.seed(132)
+  fullDf <- fullDf[!is.na(fullDf$selfRespT1),] # Remove missing responses; data will not fit with missing responses included
+  fullDf <- fullDf[order(fullDf$subID, fullDf$trialTotalT1),] # Sort by trials for trial-by-trial learning
+  uIds <- unique(fullDf$subID)
+
+  core<-detectCores()
+  cl <- parallel::makeCluster(core-2, setup_strategy = "sequential")
+  setDefaultCluster(cl=cl)
+  registerDoParallel(cl)
+  clusterExport(cl, list("cSimL"))
+  clusterExport(cl, list("fullDf"))
+  
+result<-foreach(i=uIds, .combine = rbind.data.frame, .export=c('cSimL', 'cOptimx', 'fullDf'), .packages = c("compiler", "optimx")) %dopar% {
+  subDf <- subset(fullDf, subID == i) # Subset participant data
+  output <- simL(subDf$trialTotalT1, subDf$Idx, subDf$feedback, 4, posGraph)
+  output
+    
+}
+stopCluster(cl)  
+SimLDf <- result
+
+fullDf2 <- cbind(fullDf, data.frame(VE=SimLDf$Value) )
+library(lmerTest)
+
+m1 <- lmer(scale(selfRespT1) ~ scale(VE) + ( scale(VE) | subID ) + ( 1 | Trait ), data = fullDf2, 
+              control = lmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun=2e5)), REML = F)
+summary(m1)
+r2glmm::r2beta(m1)
+
+paramDf <- matrix(ncol=4, nrow=length(uIds))
+k<-0
+for(n in 1:length(uIds) ){
+  i <- uIds[n]
+  subDf<-subset(fullDf2, subID==i)
+  RSE <- sum((subDf$selfRespT1  - (subDf$VE))^2)
+  
+  paramDf[n, 1] <- i
+  paramDf[n, 2] <- RSE
+  paramDf[n, 3] <- nrow(subDf) * log(RSE/nrow(subDf)) + k * log(nrow(subDf)) # Compute BIC
+  paramDf[n, 4] <- 2 * k + nrow(subDf) * log(RSE/nrow(subDf))
+}
+SimL.ParamDf <- paramDf
+colnames(SimL.ParamDf) <- c("subID","LL","BIC","AIC")
+SimL.ParamDf <- as.data.frame(SimL.ParamDf)
+sum(SimL.ParamDf$AIC)
+```
+
+```{r}
+
+  set.seed(132)
+  fullDf <- fullDf[!is.na(fullDf$selfRespT1),] # Remove missing responses; data will not fit with missing responses included
+  fullDf <- fullDf[order(fullDf$subID, fullDf$trialTotalT1),] # Sort by trials for trial-by-trial learning
+  uIds <- unique(fullDf$subID)
+  x = c("subID", "LR", "LL", "k", "n", "BIC", "AIC")
+  k = 1
+
+  core<-detectCores()
+  cl <- parallel::makeCluster(core-2, setup_strategy = "sequential")
+  setDefaultCluster(cl=cl)
+  registerDoParallel(cl)
+  clusterExport(cl, list("cBase.TD"))
+  clusterExport(cl, list("x"))
+  clusterExport(cl, list("k"))
+  clusterExport(cl, list("fullDf"))
+  
+result<-foreach(i=uIds, .combine = rbind.data.frame, .export=c('cBase.TD', 'cOptimx', 'fullDf', 'x', 'k'), .packages = c("compiler", "optimx")) %dopar% {
+  paramDf <- as.data.frame(matrix(ncol = 7))
+  names(paramDf) <- x
+  subDf <- subset(fullDf, subID == i) # Subset participant data
+  SSE <- function(lr){ sum((subDf$selfRespT1  - (cBase.TD(subDf$trialTotalT1,subDf$clustType,subDf$feedback,4,lr)$Value))^2) } # Set objective function for SSE
+  (output <- optimx(par = c(.04), method = c("L-BFGS-B"), fn = SSE, lower = 0, upper = 1)) # Set parameters for optimization
+  paramDf$subID <- i
+  paramDf$LR <- output$p1
+  paramDf$k <- k
+  paramDf$n <- nrow(subDf)
+  paramDf$LL <- output$value
+  paramDf$BIC <- nrow(subDf) * log(output$value/nrow(subDf)) + k * log(nrow(subDf)) # Compute BIC
+  paramDf$AIC <- 2 * k + nrow(subDf) * log(output$value/nrow(subDf))
+  paramDf
+    
+}
+stopCluster(cl)  
+Base.ParamDf <- result
+```
+
+```{r}
+
+  set.seed(132)
+  fullDf <- fullDf[!is.na(fullDf$selfRespT1),] # Remove missing responses; data will not fit with missing responses included
+  fullDf <- fullDf[order(fullDf$subID, fullDf$trialTotalT1),] # Sort by trials for trial-by-trial learning
+  uIds <- unique(fullDf$subID)
+  x = c("subID", "posLR", "negLR", "LL", "k", "n", "BIC", "AIC")
+  k = 2
+
+  core<-detectCores()
+  cl <- parallel::makeCluster(core-2, setup_strategy = "sequential")
+  setDefaultCluster(cl=cl)
+  registerDoParallel(cl)
+  clusterExport(cl, list("cTD.AsymLR"))
+  clusterExport(cl, list("x"))
+  clusterExport(cl, list("k"))
+  clusterExport(cl, list("fullDf"))
+  
+result<-foreach(i=uIds, .combine = rbind.data.frame, .export=c('cTD.AsymLR', 'cOptimx', 'fullDf', 'x', 'k'), .packages = c("compiler", "optimx")) %dopar% {
+  paramDf <- as.data.frame(matrix(ncol = 8))
+  names(paramDf) <- x
+  subDf <- subset(fullDf, subID == i) # Subset participant data
+  SSE <- function(param){ sum((subDf$selfRespT1  - (cTD.AsymLR(subDf$trialTotalT1,subDf$clustType,subDf$feedback,4,param)$Value))^2) } # Set objective function for SSE
+  (output <- optimx(par = c(.04, .04), method = c("L-BFGS-B"), fn = SSE, lower = c(0, 0), upper = c(1,1))) # Set parameters for optimization
+  paramDf$subID <- i
+  paramDf$posLR <- output$p1
+  paramDf$negLR <- output$p2
+  paramDf$k <- k
+  paramDf$n <- nrow(subDf)
+  paramDf$LL <- output$value
+  paramDf$BIC <- nrow(subDf) * log(output$value/nrow(subDf)) + k * log(nrow(subDf)) # Compute BIC
+  paramDf$AIC <- 2 * k + nrow(subDf) * log(output$value/nrow(subDf))
+  paramDf
+    
+}
+stopCluster(cl)  
+AsymLR.ParamDf <- result
+```
+
+```{r}
+
+  set.seed(132)
+  fullDf <- fullDf[!is.na(fullDf$selfRespT1),] # Remove missing responses; data will not fit with missing responses included
+  fullDf <- fullDf[order(fullDf$subID, fullDf$trialTotalT1),] # Sort by trials for trial-by-trial learning
+  uIds <- unique(fullDf$subID)
+  x = c("subID", "posLR", "negLR", "LL", "k", "n", "BIC", "AIC")
+  k = 2
+
+  core<-detectCores()
+  cl <- parallel::makeCluster(core-1, setup_strategy = "sequential")
+  setDefaultCluster(cl=cl)
+  registerDoParallel(cl)
+  clusterExport(cl, list("cGraphProp"))
+  clusterExport(cl, list("x"))
+  clusterExport(cl, list("k"))
+  clusterExport(cl, list("fullDf"))
+  
+result<-foreach(i=uIds, .combine = rbind.data.frame, .export=c('cGraphProp', 'cOptimx', 'fullDf', 'x', 'k'), .packages = c("compiler", "optimx")) %dopar% {
+  paramDf <- as.data.frame(matrix(ncol = length(x) ))
+  names(paramDf) <- x
+  subDf <- subset(fullDf, subID == i) # Subset participant data
+  SSE <- function(param){ sum((subDf$selfRespT1  - (cGraphProp(subDf$trialTotalT1,subDf$Idx,subDf$feedback,4,posGraph,type = "out", cue = "single", modulate = c("feed", "no"), degP = "no", param)$Value))^2) } # Set objective function for SSE
+  (output <- optimx(par = c(.04, .04), method = c("L-BFGS-B"), fn = SSE, lower = c(0, 0), upper = c(1,1))) # Set parameters for optimization
+  paramDf$subID <- i
+  paramDf$posLR <- output$p1
+  paramDf$negLR <- output$p2
+  paramDf$k <- k
+  paramDf$n <- nrow(subDf)
+  paramDf$LL <- output$value
+  paramDf$BIC <- nrow(subDf) * log(output$value/nrow(subDf)) + k * log(nrow(subDf)) # Compute BIC
+  paramDf$AIC <- 2 * k + nrow(subDf) * log(output$value/nrow(subDf))
+  paramDf
+    
+}
+stopCluster(cl)  
+GraphOutProp.ParamDf <- result
+```
+
+```{r}
+
+  set.seed(132)
+  fullDf <- fullDf[!is.na(fullDf$selfRespT1),] # Remove missing responses; data will not fit with missing responses included
+  fullDf <- fullDf[order(fullDf$subID, fullDf$trialTotalT1),] # Sort by trials for trial-by-trial learning
+  uIds <- unique(fullDf$subID)
+  x = c("subID", "posLR", "negLR", "LL", "k", "n", "BIC", "AIC")
+  k = 2
+
+  core<-detectCores()
+  cl <- parallel::makeCluster(core-1, setup_strategy = "sequential")
+  setDefaultCluster(cl=cl)
+  registerDoParallel(cl)
+  clusterExport(cl, list("cGraphProp"))
+  clusterExport(cl, list("x"))
+  clusterExport(cl, list("k"))
+  clusterExport(cl, list("fullDf"))
+  
+result<-foreach(i=uIds, .combine = rbind.data.frame, .export=c('cGraphProp', 'cOptimx', 'fullDf', 'x', 'k'), .packages = c("compiler", "optimx")) %dopar% {
+  paramDf <- as.data.frame(matrix(ncol = length(x) ))
+  names(paramDf) <- x
+  subDf <- subset(fullDf, subID == i) # Subset participant data
+  SSE <- function(param){ sum((subDf$selfRespT1  - (cGraphProp(subDf$trialTotalT1,subDf$Idx,subDf$feedback,4,posGraph,type = "in", cue = "single", modulate = c("feed", "no"), degP = "no", param)$Value))^2) } # Set objective function for SSE
+  (output <- optimx(par = c(.04, .04), method = c("L-BFGS-B"), fn = SSE, lower = c(0, 0), upper = c(1,1))) # Set parameters for optimization
+  paramDf$subID <- i
+  paramDf$posLR <- output$p1
+  paramDf$negLR <- output$p2
+  paramDf$k <- k
+  paramDf$n <- nrow(subDf)
+  paramDf$LL <- output$value
+  paramDf$BIC <- nrow(subDf) * log(output$value/nrow(subDf)) + k * log(nrow(subDf)) # Compute BIC
+  paramDf$AIC <- 2 * k + nrow(subDf) * log(output$value/nrow(subDf))
+  paramDf
+    
+}
+stopCluster(cl)  
+GraphInProp.ParamDf <- result
+```
+
+```{r}
+
+  set.seed(132)
+  fullDf <- fullDf[!is.na(fullDf$selfRespT1),] # Remove missing responses; data will not fit with missing responses included
+  fullDf <- fullDf[order(fullDf$subID, fullDf$trialTotalT1),] # Sort by trials for trial-by-trial learning
+  uIds <- unique(fullDf$subID)
+  x = c("subID", "posLR", "negLR", "LL", "k", "n", "BIC", "AIC")
+  k = 2
+
+  core<-detectCores()
+  cl <- parallel::makeCluster(core-1, setup_strategy = "sequential")
+  setDefaultCluster(cl=cl)
+  registerDoParallel(cl)
+  clusterExport(cl, list("cGraphProp"))
+  clusterExport(cl, list("x"))
+  clusterExport(cl, list("k"))
+  clusterExport(cl, list("fullDf"))
+  
+result<-foreach(i=uIds, .combine = rbind.data.frame, .export=c('cGraphProp', 'cOptimx', 'fullDf', 'x', 'k'), .packages = c("compiler", "optimx")) %dopar% {
+  paramDf <- as.data.frame(matrix(ncol = length(x) ))
+  names(paramDf) <- x
+  subDf <- subset(fullDf, subID == i) # Subset participant data
+  SSE <- function(param){ sum((subDf$selfRespT1  - (cGraphProp(subDf$trialTotalT1,subDf$Idx,subDf$feedback,4,posGraph,type = "all", cue = "single", modulate = c("feed", "no"), degP = "no", param)$Value))^2) } # Set objective function for SSE
+  (output <- optimx(par = c(.04, .04), method = c("L-BFGS-B"), fn = SSE, lower = c(0, 0), upper = c(1,1))) # Set parameters for optimization
+  paramDf$subID <- i
+  paramDf$posLR <- output$p1
+  paramDf$negLR <- output$p2
+  paramDf$k <- k
+  paramDf$n <- nrow(subDf)
+  paramDf$LL <- output$value
+  paramDf$BIC <- nrow(subDf) * log(output$value/nrow(subDf)) + k * log(nrow(subDf)) # Compute BIC
+  paramDf$AIC <- 2 * k + nrow(subDf) * log(output$value/nrow(subDf))
+  paramDf
+    
+}
+stopCluster(cl)  
+GraphAllProp.ParamDf <- result
+```
+
+```{r}
+
+  set.seed(132)
+  fullDf <- fullDf[!is.na(fullDf$selfRespT1),] # Remove missing responses; data will not fit with missing responses included
+  fullDf <- fullDf[order(fullDf$subID, fullDf$trialTotalT1),] # Sort by trials for trial-by-trial learning
+  uIds <- unique(fullDf$subID)
+  x = c("subID", "posLR", "negLR", "LL", "k", "n", "BIC", "AIC")
+  k = 2
+
+  core<-detectCores()
+  cl <- parallel::makeCluster(core-1, setup_strategy = "sequential")
+  setDefaultCluster(cl=cl)
+  registerDoParallel(cl)
+  clusterExport(cl, list("cGraphSim"))
+  clusterExport(cl, list("x"))
+  clusterExport(cl, list("k"))
+  clusterExport(cl, list("fullDf"))
+  
+result<-foreach(i=uIds, .combine = rbind.data.frame, .export=c('cGraphSim', 'cOptimx', 'fullDf', 'x', 'k'), .packages = c("compiler", "optimx")) %dopar% {
+  paramDf <- as.data.frame(matrix(ncol = length(x) ))
+  names(paramDf) <- x
+  subDf <- subset(fullDf, subID == i) # Subset participant data
+  SSE <- function(param){ sum((subDf$selfRespT1  - (cGraphSim(subDf$trialTotalT1,subDf$Idx,subDf$feedback,4,posGraph,sim="all",param)$Value))^2) } # Set objective function for SSE
+  (output <- optimx(par = c(.04, .04), method = c("L-BFGS-B"), fn = SSE, lower = c(0, 0), upper = c(1,1))) # Set parameters for optimization
+  paramDf$subID <- i
+  paramDf$posLR <- output$p1
+  paramDf$negLR <- output$p2
+  paramDf$k <- k
+  paramDf$n <- nrow(subDf)
+  paramDf$LL <- output$value
+  paramDf$BIC <- nrow(subDf) * log(output$value/nrow(subDf)) + k * log(nrow(subDf)) # Compute BIC
+  paramDf$AIC <- 2 * k + nrow(subDf) * log(output$value/nrow(subDf))
+  paramDf
+    
+}
+stopCluster(cl)  
+GraphSim.ParamDf <- result
+```
+
+```{r}
+
+  set.seed(132)
+  fullDf <- fullDf[!is.na(fullDf$selfRespT1),] # Remove missing responses; data will not fit with missing responses included
+  fullDf <- fullDf[order(fullDf$subID, fullDf$trialTotalT1),] # Sort by trials for trial-by-trial learning
+  uIds <- unique(fullDf$subID)
+  x = c("subID", "posLR", "negLR", "cdMix" , "LL", "k", "n", "BIC", "AIC")
+  k = 3
+
+  core<-detectCores()
+  cl <- parallel::makeCluster(core-1, setup_strategy = "sequential")
+  setDefaultCluster(cl=cl)
+  registerDoParallel(cl)
+  clusterExport(cl, list("cGraphProp"))
+  clusterExport(cl, list("x"))
+  clusterExport(cl, list("k"))
+  clusterExport(cl, list("fullDf"))
+  
+result<-foreach(i=uIds, .combine = rbind.data.frame, .export=c('cGraphProp', 'cOptimx', 'fullDf', 'x', 'k'), .packages = c("compiler", "optimx")) %dopar% {
+  paramDf <- as.data.frame(matrix(ncol = length(x) ))
+  names(paramDf) <- x
+  subDf <- subset(fullDf, subID == i) # Subset participant data
+  SSE <- function(param){ sum((subDf$selfRespT1  - (cGraphPropComm(subDf$trialTotalT1,subDf$Idx,subDf$feedback,4,posGraph,type = "in", cue = "single", modulate = c("feed", "no"), degP = "no", posGraphold, subDf$clustType, param)$Value))^2) } # Set objective function for SSE
+  (output <- optimx(par = c(.04, .04, .5), method = c("L-BFGS-B"), fn = SSE, lower = c(0, 0, 0), upper = c(1,1, 1))) # Set parameters for optimization
+  paramDf$subID <- i
+  paramDf$posLR <- output$p1
+  paramDf$negLR <- output$p2
+  paramDf$cdMix <- output$p3
+  paramDf$k <- k
+  paramDf$n <- nrow(subDf)
+  paramDf$LL <- output$value
+  paramDf$BIC <- nrow(subDf) * log(output$value/nrow(subDf)) + k * log(nrow(subDf)) # Compute BIC
+  paramDf$AIC <- 2 * k + nrow(subDf) * log(output$value/nrow(subDf))
+  paramDf
+    
+}
+stopCluster(cl)  
+GraphInPropComm.ParamDf <- result
+```
+
+```{r}
+
+  set.seed(132)
+  fullDf <- fullDf[!is.na(fullDf$selfRespT1),] # Remove missing responses; data will not fit with missing responses included
+  fullDf <- fullDf[order(fullDf$subID, fullDf$trialTotalT1),] # Sort by trials for trial-by-trial learning
+  uIds <- unique(fullDf$subID)
+  x = c("subID", "posLR", "negLR", "mix", "LL", "k", "n", "BIC", "AIC")
+  k = 3
+
+  core<-detectCores()
+  cl <- parallel::makeCluster(core-1, setup_strategy = "sequential")
+  setDefaultCluster(cl=cl)
+  registerDoParallel(cl)
+  clusterExport(cl, list("cGraphSim"))
+  clusterExport(cl, list("x"))
+  clusterExport(cl, list("k"))
+  clusterExport(cl, list("fullDf"))
+  
+result<-foreach(i=uIds, .combine = rbind.data.frame, .export=c('cGraphMix', 'cOptimx', 'fullDf', 'x', 'k'), .packages = c("compiler", "optimx")) %dopar% {
+  paramDf <- as.data.frame(matrix(ncol = length(x) ))
+  names(paramDf) <- x
+  subDf <- subset(fullDf, subID == i) # Subset participant data
+  SSE <- function(param){ sum((subDf$selfRespT1  - (cGraphMix(subDf$trialTotalT1,subDf$Idx,subDf$feedback,4,posGraph,type="in",cue="single",param)$Value))^2) } # Set objective function for SSE
+  (output <- optimx(par = c(.04, .04, .5), method = c("L-BFGS-B"), fn = SSE, lower = c(0, 0, 0), upper = c(1,1, 1))) # Set parameters for optimization
+  paramDf$subID <- i
+  paramDf$posLR <- output$p1
+  paramDf$negLR <- output$p2
+  paramDf$mix <- output$p3
+  paramDf$k <- k
+  paramDf$n <- nrow(subDf)
+  paramDf$LL <- output$value
+  paramDf$BIC <- nrow(subDf) * log(output$value/nrow(subDf)) + k * log(nrow(subDf)) # Compute BIC
+  paramDf$AIC <- 2 * k + nrow(subDf) * log(output$value/nrow(subDf))
+  paramDf
+    
+}
+stopCluster(cl)  
+GraphMix.ParamDf <- result
+```
+
+```{r}
+
+  set.seed(132)
+  fullDf <- fullDf[!is.na(fullDf$selfRespT1),] # Remove missing responses; data will not fit with missing responses included
+  fullDf <- fullDf[order(fullDf$subID, fullDf$trialTotalT1),] # Sort by trials for trial-by-trial learning
+  uIds <- unique(fullDf$subID)
+  x = c("subID", "posLR", "negLR", "mix", "fs", "LL", "k", "n", "BIC", "AIC")
+  k = 4
+
+  core<-detectCores()
+  cl <- parallel::makeCluster(core-1, setup_strategy = "sequential")
+  setDefaultCluster(cl=cl)
+  registerDoParallel(cl)
+  clusterExport(cl, list("cGraphMix_FS"))
+  clusterExport(cl, list("x"))
+  clusterExport(cl, list("k"))
+  clusterExport(cl, list("fullDf"))
+  
+result<-foreach(i=uIds, .combine = rbind.data.frame, .export=c('cGraphMix_FS', 'cOptimx', 'fullDf', 'x', 'k'), .packages = c("compiler", "optimx")) %dopar% {
+  paramDf <- as.data.frame(matrix(ncol = length(x) ))
+  names(paramDf) <- x
+  subDf <- subset(fullDf, subID == i) # Subset participant data
+  SSE <- function(param){ sum((subDf$selfRespT1  - (cGraphMix_FS(subDf$trialTotalT1,subDf$Idx,subDf$feedback,4,posGraph,type="in",cue="single",param)$Value))^2) } # Set objective function for SSE
+  (output <- optimx(par = c(.04, .04, .5, 1), method = c("L-BFGS-B"), fn = SSE, lower = c(0, 0, 0, .5), upper = c(1,1, 1, 8))) # Set parameters for optimization
+  paramDf$subID <- i
+  paramDf$posLR <- output$p1
+  paramDf$negLR <- output$p2
+  paramDf$mix <- output$p3
+  paramDf$fs <- output$p4
+  paramDf$k <- k
+  paramDf$n <- nrow(subDf)
+  paramDf$LL <- output$value
+  paramDf$BIC <- nrow(subDf) * log(output$value/nrow(subDf)) + k * log(nrow(subDf)) # Compute BIC
+  paramDf$AIC <- 2 * k + nrow(subDf) * log(output$value/nrow(subDf))
+  paramDf
+    
+}
+stopCluster(cl)  
+GraphMix_FS.ParamDf <- result
+```
+
+```{r}
+
+  set.seed(132)
+  fullDf <- fullDf[!is.na(fullDf$selfRespT1),] # Remove missing responses; data will not fit with missing responses included
+  fullDf <- fullDf[order(fullDf$subID, fullDf$trialTotalT1),] # Sort by trials for trial-by-trial learning
+  uIds <- unique(fullDf$subID)
+  x = c("subID", "posLR", "negLR", "mix", "decay", "LL", "k", "n", "BIC", "AIC")
+  k = 4
+
+  core<-detectCores()
+  cl <- parallel::makeCluster(core-1, setup_strategy = "sequential")
+  setDefaultCluster(cl=cl)
+  registerDoParallel(cl)
+  clusterExport(cl, list("cGraphMixDec"))
+  clusterExport(cl, list("x"))
+  clusterExport(cl, list("k"))
+  clusterExport(cl, list("fullDf"))
+  
+result<-foreach(i=uIds, .combine = rbind.data.frame, .export=c('cGraphMixDec', 'cOptimx', 'fullDf', 'x', 'k'), .packages = c("compiler", "optimx")) %dopar% {
+  paramDf <- as.data.frame(matrix(ncol = length(x) ))
+  names(paramDf) <- x
+  subDf <- subset(fullDf, subID == i) # Subset participant data
+  SSE <- function(param){ sum((subDf$selfRespT1  - (cGraphMixDec(subDf$trialTotalT1,subDf$Idx,subDf$feedback,4,posGraph,type="in",cue="single",param)$Value))^2) } # Set objective function for SSE
+  (output <- optimx(par = c(.04, .04, .5, .99), method = c("L-BFGS-B"), fn = SSE, lower = c(0, 0, 0, .7), upper = c(1,1, 1, 1))) # Set parameters for optimization
+  paramDf$subID <- i
+  paramDf$posLR <- output$p1
+  paramDf$negLR <- output$p2
+  paramDf$mix <- output$p3
+  paramDf$decay <- output$p4
+  paramDf$k <- k
+  paramDf$n <- nrow(subDf)
+  paramDf$LL <- output$value
+  paramDf$BIC <- nrow(subDf) * log(output$value/nrow(subDf)) + k * log(nrow(subDf)) # Compute BIC
+  paramDf$AIC <- 2 * k + nrow(subDf) * log(output$value/nrow(subDf))
+  paramDf
+    
+}
+stopCluster(cl)  
+GraphMixDec.ParamDf <- result
+```
+
+```{r}
+AICs<-c(sum(Base.ParamDf$AIC),
+  sum(AsymLR.ParamDf$AIC),
+  sum(GraphOutProp.ParamDf$AIC),
+  sum(GraphInProp.ParamDf$AIC),
+  sum(GraphAllProp.ParamDf$AIC),
+  sum(GraphInPropComm.ParamDf$AIC),
+  sum(GraphSim.ParamDf$AIC),
+  sum(SimL.ParamDf$AIC),
+  sum(GraphMix.ParamDf$AIC),
+  sum(GraphMix_FS.ParamDf$AIC),
+  sum(GraphMixDec.ParamDf$AIC)
+  )
+modelNames<-c("Base",
+             "AsymLR",
+             "ForProp",
+             "BackProp",
+             "AllProp",
+             "BackPropComm",
+             "SimProp",
+             "SimValue",
+             "Mixture",
+             "MixtureFS",
+             "MixtureDec"
+             )
+modelPerform<-data.frame(modelNames, AICs)
+modelPerform$AICdiffs <- modelPerform$AICs - modelPerform$AICs[1]
+
+library(ggplot2)
+p <- ggplot(data=modelPerform, aes(x=reorder(modelNames, AICdiffs), y=AICdiffs )) +
+geom_bar(stat="identity", position=position_dodge()) + coord_flip() + theme(axis.text.x=element_text(angle = 90, hjust=1, vjust=0.5, size = 10)) + scale_y_reverse()
+p
+library(forcats)
+library(forcats)
+#p + aes(x = fct_inorder(modelNames) )
+
+write.csv(modelPerform, "~/Google Drive/Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/propagationModelPerform.csv", row.names = F)
+
+AICs<-c(sum(Base.ParamDf$AIC),
+  sum(AsymLR.ParamDf$AIC),
+  sum(GraphOutProp.ParamDf$AIC),
+  sum(GraphInProp.ParamDf$AIC),
+  sum(GraphAllProp.ParamDf$AIC),
+  sum(GraphSim.ParamDf$AIC),
+  sum(GraphMix.ParamDf$AIC)
+  )
+modelNames<-c("Base",
+             "AsymLR",
+             "ForProp",
+             "BackProp",
+             "AllProp",
+             "SimProp",
+             "Mixture"
+             )
+
+modelPerform<-data.frame(modelNames, AICs)
+modelPerform$AICdiffs <- modelPerform$AICs - modelPerform$AICs[1]
+
+write.csv(modelPerform, "~/Google Drive/Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/propagationModelPerformFinal.csv", row.names = F)
+```
+
+```{r}
+
+  priorsM <- c(mean(GraphMix.ParamDf$posLR), mean(GraphMix.ParamDf$negLR), mean(GraphMix.ParamDf$mix))
+  priorsSD <- c(sd(GraphMix.ParamDf$posLR), sd(GraphMix.ParamDf$negLR), sd(GraphMix.ParamDf$mix))
+  zScore <- function(input, m, s){
+    output<-(input - m)/s
+    return(output)
+  }
+  zScore <- cmpfun(zScore)
+
+  set.seed(132)
+  fullDf <- fullDf[!is.na(fullDf$selfRespT1),] # Remove missing responses; data will not fit with missing responses included
+  fullDf <- fullDf[order(fullDf$subID, fullDf$trialTotalT1),] # Sort by trials for trial-by-trial learning
+  uIds <- unique(fullDf$subID)
+  x = c("subID", "posLR", "negLR", "mix", "LL", "k", "n", "BIC", "AIC")
+  k = 3
+  #priorsSD <- 
+  lambda <- .15
+
+  core<-detectCores()
+  cl <- parallel::makeCluster(core-2, setup_strategy = "sequential")
+  setDefaultCluster(cl=cl)
+  registerDoParallel(cl)
+  clusterExport(cl, list("cGraphMix"))
+  clusterExport(cl, list("x"))
+  clusterExport(cl, list("k"))
+  clusterExport(cl, list("fullDf"))
+  clusterExport(cl, list("priorsM"))
+  clusterExport(cl, list("priorsSD"))
+  clusterExport(cl, list("lambda"))
+  
+result<-foreach(i=uIds, .combine = rbind.data.frame, .export=c('cGraphMix', 'cOptimx', 'fullDf', 'x', 'k', 'priorsM', 'priorsSD', 'lambda'), .packages = c("compiler", "optimx")) %dopar% {
+  paramDf <- as.data.frame(matrix(ncol = length(x)))
+  names(paramDf) <- x
+  subDf <- subset(fullDf, subID == i) # Subset participant data
+  SSE <- function(param){ (sum((subDf$selfRespT1  -                              (cGraphMix(subDf$trialTotalT1,subDf$Idx,subDf$feedback,4,posGraph,type="in",cue="single",param)$Value))^2)) + lambda * sum( c( ( zScore(param[1], priorsM[1], priorsSD[1] ) )^2, ( zScore(param[2], priorsM[2], priorsSD[2] ) )^2, (  zScore(param[3], priorsM[3], priorsSD[3] ) )^2 )) } # Set objective function for SSE
+  (output <- optimx(par = c(.04, .04, .5), method = c("L-BFGS-B"), fn = SSE, lower = c(0, 0, 0), upper = c(1,1,1))) # Set parameters for optimization
+  paramDf$subID <- i
+  paramDf$posLR <- output$p1
+  paramDf$negLR <- output$p2
+  paramDf$mix <- output$p3
+  paramDf$fs
+  paramDf$k <- k
+  paramDf$n <- nrow(subDf)
+  paramDf$LL <- output$value
+  paramDf$BIC <- nrow(subDf) * log(output$value/nrow(subDf)) + k * log(nrow(subDf)) # Compute BIC
+  paramDf$AIC <- 2 * k + nrow(subDf) * log(output$value/nrow(subDf))
+  paramDf
+    
+}
+stopCluster(cl)  
+GraphMix.Ridge.ParamDf <- result
+```
+
+```{r}
+LOO_Df <- data.frame() # Initialize empty dataframe for full RL output
+uIds <- unique(fullDf$subID)
+#ParamDf <- GraphMix_FS_OutBiasFix.ParamDf
+#ParamDf <- GraphMix_FS.ParamDf
+#ParamDf <- GraphMix_OutMod.ParamDf
+ParamDf <- GraphMix.ParamDf
+#ParamDf <- GraphInProp.ParamDf
+for(i in uIds){
+  
+  #LOO.Param <- subset(AsymLR.ParamDf, ID!=i)
+  LOO.Param <- subset(ParamDf, subID!=i)
+  LOO_LR.Pos <- mean(LOO.Param$posLR)
+  LOO_LR.Neg <- mean(LOO.Param$negLR)
+  LOO_Mix <- median(LOO.Param$mix)
+  #LOO_FS <- mean(LOO.Param$fs)
+  #LOO_Bias <- mean(LOO.Param$scale)
+  
+  #########################################
+  # RUN RL MODEL WITH FITTED PARAMETERS #
+  # Can keep as is #
+  #########################################
+  
+  subDf <- subset(fullDf, subID == i) # Subset participant data
+  #subOut <- cGraphMix_OutMod(subDf$trialTotalT1,subDf$Idx,subDf$feedback,4,posGraph,type="in",cue="single",c(LOO_LR.Pos, LOO_LR.Neg, LOO_Mix)) # Produce RL output with fitted parameters
+  #subOut <- cGraphMix_FS(subDf$trialTotalT1,subDf$Idx,subDf$feedback,4,posGraph,type="in",cue="single",c(LOO_LR.Pos, LOO_LR.Neg, LOO_Mix, LOO_FS) )
+  #subOut <- cGraphMix_FS_OutBias(subDf$trialTotalT1,subDf$Idx,subDf$feedback,4,posGraph,type="in",cue="single",fix=T,c(LOO_LR.Pos, LOO_LR.Neg, LOO_Mix, LOO_FS, LOO_Bias) )
+  subOut <- cGraphMix(subDf$trialTotalT1,subDf$Idx,subDf$feedback,4,posGraph,type="in",cue="single",c(LOO_LR.Pos, LOO_LR.Neg, LOO_Mix)) # Produce RL output with fitted parameters
+  #subOut <- cGraphProp(subDf$trialTotalT1,subDf$Idx,subDf$feedback,4,posGraph,type = "in", cue = "single", modulate = c("feed", "no"), degP = "no", c(LOO_LR.Pos, LOO_LR.Neg) )
+  subOut <- cbind(subOut, subID = i) # Append column for subject ID for this RL output
+  LOO_Df <- rbind(LOO_Df, subOut) # Append dataframe of subject RL output to full RL dataframe
+  
+  
+}
+
+names(LOO_Df)[1]<-"TDcount"
+#names(LOO_Df)[2]<-"trialInCluster"
+names(LOO_Df)[2]<-"trialTotalT1"
+#names(LOO_Df)[ncol(LOO_Df)-2]<-"predError"
+colnames(LOO_Df)[colnames(LOO_Df)=="RPE"] <- "predError"
+#names(LOO_Df)[ncol(LOO_Df)-1]<-"valEst"
+colnames(LOO_Df)[colnames(LOO_Df)=="Value"] <- "valEst"
+#names(LOO_Df)[11]<-"socExp"
+tBt_Df <- merge(fullDf, LOO_Df, by= c("subID", "trialTotalT1"), all.x = TRUE)
+tBt_Df <- tBt_Df[order(tBt_Df$subID, tBt_Df$trialTotalT1),]
+```
+
+```{r}
+setwd("~/Google Drive/Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/output/")
+write.csv(GraphMix.ParamDf, "GraphMix.ParamDf.csv", row.names = FALSE)
+#write.csv(GraphMix.Ridge.ParamDf, "GraphMix.Ridge.ParamDf.csv", row.names = FALSE)
+
+write.csv(modelPerform, "AIClist.csv", row.names = FALSE)
+```
+
+```{r}
+fullTDdf <- data.frame() # Initialize empty dataframe for full RL output
+uIds <- unique(fullDf$subID)
+ParamDf <- GraphMix.ParamDf
+for(i in uIds){
+  
+  subParam <- subset(ParamDf, subID==i)
+  curParam<-subParam[2:4]
+  
+  #########################################
+  # RUN RL MODEL WITH FITTED PARAMETERS #
+  # Can keep as is #
+  #########################################
+  
+  subDf <- subset(fullDf, subID == i) # Subset participant data
+  subOut <- cGraphMix(subDf$trialTotalT1,subDf$Idx,subDf$feedback,4,posGraph,type="in",cue="single", curParam )
+  subOut <- cbind(subOut, subID = i) # Append column for subject ID for this RL output
+  fullTDdf <- rbind(fullTDdf, subOut) # Append dataframe of subject RL output to full RL dataframe
+  
+  
+}
+
+names(fullTDdf)[colnames(fullTDdf)=="LoopN"]<-"TDcount"
+names(fullTDdf)[colnames(fullTDdf)=="trialNum"]<-"trialTotalT1"
+names(fullTDdf)[colnames(fullTDdf)=="RPE"]<-"predError"
+names(fullTDdf)[colnames(fullTDdf)=="Value"]<-"valEst"
+fullTDdf <- merge(fullDf, fullTDdf, by= c("subID", "trialTotalT1"), all.x = TRUE, all.y = T)
+fullTDdf <- fullTDdf[order(fullTDdf$subID, fullTDdf$trialTotalT1),]
+
+```
+
+
+```{r}
+fullTDdf <- fullTDdf[order(fullTDdf$subID, fullTDdf$trialTotalT1),]
+uIds <- unique(fullTDdf$subID)
+uClust <- unique(fullTDdf$Idx)
+fullTDdf$valEstF <- NA
+for(i in uIds){
+  subDf <- fullTDdf[fullTDdf$subID==i,]
+  for(j in uClust){
+    maxVal.PE <- subDf[nrow(subDf), paste0("wpe",j)]
+    fullTDdf$valEstPE[fullTDdf$subID == i & fullTDdf$Idx==j] <- maxVal.PE
+    
+    maxVal.S <- subDf[nrow(subDf), paste0("ws",j)]
+    fullTDdf$valEstS[fullTDdf$subID == i & fullTDdf$Idx==j] <- maxVal.S
+    
+    maxVal <- ParamDf$mix[ParamDf$subID==i] * maxVal.PE + ( 1 - ParamDf$mix[ParamDf$subID==i] ) * maxVal.S
+    
+    fullTDdf$valEstF[fullTDdf$subID == i & fullTDdf$Idx==j] <- maxVal
+  }
+}
+fullTDdf <- fullTDdf[order(fullTDdf$subID, fullTDdf$trialTotalT1),]
+```
+
+```{r}
+  set.seed(132)
+  fullDf <- fullDf[!is.na(fullDf$selfRespT1),] # Remove missing responses; data will not fit with missing responses included
+  fullDf <- fullDf[order(fullDf$subID, fullDf$trialTotalT1),] # Sort by trials for trial-by-trial learning
+  uIds <- unique(fullDf$subID)
+
+  core<-detectCores()
+  cl <- parallel::makeCluster(core-2, setup_strategy = "sequential")
+  setDefaultCluster(cl=cl)
+  registerDoParallel(cl)
+  clusterExport(cl, list("entropy"))
+  clusterExport(cl, list("fullDf"))
+  
+result<-foreach(i=uIds, .combine = rbind.data.frame, .export=c('entropy', 'fullDf'), .packages = c("compiler")) %dopar% {
+  subDf <- subset(fullDf, subID == i) # Subset participant data
+  output <- entropy(subDf$trialTotalT1, subDf$Idx, subDf$feedback, 4, posGraph)
+  output <- cbind(output, i)
+    
+}
+stopCluster(cl)  
+entropyDf <- result
+```
+
+```{r}
+colnames(entropyDf)[colnames(entropyDf)=="i"] <- "subID"
+colnames(entropyDf)[colnames(entropyDf)=="trialNum"] <- "trialTotalT1"
+tBt_Df <- merge(tBt_Df, entropyDf, by = c("subID","trialTotalT1"), all.x = T)
+```
+
+```{r}
+# names(allCents)[1] <- "Trait"
+# fullTDdf2 <- merge(fullTDdf, allCents[c("Trait","desirability","prevalence","category","interpersonal","observability","outDegree","inDegree","between","eigen","close","efficiency","transitivity","pageRank")], by = "Trait", all.x = TRUE)
+# fullTDdf2 <- merge(fullTDdf2, indDiff, by = "subID", all.x = TRUE)
+# tBt_Df <- merge(tBt_Df, allCents[c("Trait","desirability","prevalence","category","interpersonal","observability","outDegree","inDegree","between","eigen","close","efficiency","transitivity","pageRank")], by = "Trait", all.x = TRUE)
+# tBt_Df2 <- merge(tBt_Df, indDiff, by = "subID", all.x = TRUE)
+# fullTDdf2 <- fullTDdf2[order(fullTDdf2$subID, fullTDdf2$trialTotalT1),]
+# tBt_Df2 <- tBt_Df2[order(tBt_Df2$subID, tBt_Df2$trialTotalT1),]
+```
+
+```{r}
+setwd("~/Google Drive/Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/output/")
+write.csv(fullTDdf, "fullTDdf.csv", row.names = FALSE)
+write.csv(tBt_Df, "trialBytrial.Df.csv", row.names = FALSE)
+```
+
+```{r}
+timeDf <- fullTDdf[c("subID","clustType","valFeed","selfRespT1","selfRespT2", "changeScore")]
+timeDf2 <- data.frame(timeDf[1:2], stack(timeDf[4:5]))
+timeDf2 <- timeDf2[order(timeDf2$subID),]
+timeDf3 <- timeDf2[complete.cases(timeDf2), ]
+timeDf4 <- data.frame(timeDf[c(1,3)], timeDf[6])
+timeDf4 <- timeDf4[order(timeDf4$subID),]
+timeDf5 <- timeDf4[complete.cases(timeDf4), ]
+library(Rmisc)
+summaryChange<-summarySE(timeDf3, measurevar="values", groupvars=c("clustType","ind"))
+
+summaryFeed<-summarySE(timeDf5, measurevar="changeScore", groupvars=c("valFeed"))
+```
+
+```{r}
+setwd("~/Google Drive/Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/output/")
+write.csv(summaryChange, "summaryChange.csv", row.names = FALSE)
+write.csv(summaryFeed, "summaryFeed.csv", row.names = FALSE)
+```
+
+```{r}
+agDf <- data.frame(matrix(ncol = 6, nrow = 0))
+x <- c("subID", "cluster", "T1", "T2", "T1V","T2V")
+colnames(agDf) <- x
+uIds <- unique(fullTDdf$subID)
+uCl <- unique(fullTDdf$clustType)
+for(i in uIds){
+  for(j in uCl){
+    avT1<-mean(fullTDdf$selfRespT1[fullTDdf$subID==i & fullTDdf$clustType==j], na.rm = TRUE)
+    avT2<-mean(fullTDdf$selfRespT2[fullTDdf$subID==i & fullTDdf$clustType==j], na.rm = TRUE)
+    T1V<-var(fullTDdf$selfRespT1[fullTDdf$subID==i & fullTDdf$clustType==j], na.rm = TRUE)
+    T2V<-var(fullTDdf$selfRespT2[fullTDdf$subID==i & fullTDdf$clustType==j], na.rm = TRUE)
+    agDf <- rbind(agDf, data.frame(subID=i, cluster=j, T1=avT1, T2=avT2, T1V=T1V, T2V=T2V))
+  }
+}
+
+agVDf <- data.frame(matrix(ncol = 5, nrow = 0))
+x <- c("subID", "valFeed", "T1", "T2", "Change")
+colnames(agVDf) <- x
+uIds <- unique(fullTDdf$subID)
+uCl <- unique(fullTDdf$clustType)
+for(i in uIds){
+  for(j in 1:2){
+    avT1<-mean(fullTDdf$selfRespT1[fullTDdf$subID==i & fullTDdf$valFeed==j], na.rm = TRUE)
+    avT2<-mean(fullTDdf$selfRespT2[fullTDdf$subID==i & fullTDdf$valFeed==j], na.rm = TRUE)
+    ch<-mean(fullTDdf$changeScore[fullTDdf$subID==i & fullTDdf$valFeed==j], na.rm = TRUE)
+    agVDf <- rbind(agVDf, data.frame(subID=i, valFeed=j, T1=avT1, T2=avT2, Change=ch))
+  }
+}
+```
+
+```{r}
+wideT1 <- reshape(agDf[1:3], idvar=c("subID"), timevar="cluster", direction="wide")
+wideT2 <- reshape(agDf[c(1:2,4)], idvar=c("subID"), timevar="cluster", direction="wide")
+```
+
+```{r}
+agTimeDf <- data.frame(agDf[1:2], stack(agDf[3:4]))
+summaryAgChange <- summarySE(agTimeDf, measurevar="values", groupvars=c("cluster","ind"))
+summaryAgVChange <- summarySE(agVDf, measurevar="Change", groupvars=c("valFeed"))
+
+setwd("./output/")
+write.csv(summaryAgChange, "summaryAgChange.csv", row.names = FALSE)
+write.csv(summaryAgVChange, "summaryAgVChange.csv", row.names = FALSE)
+write.csv(agDf, "agDf.csv", row.names = FALSE)
+write.csv(agVDf, "agVDf.csv", row.names = FALSE)
+```
+
+```{r}
+AsymLR.ParamDfPlotDf<-GraphMix.ParamDf[2:3]
+AsymLR.PlotDf<-stack(AsymLR.ParamDfPlotDf)
+
+paramPlot <- summarySE(AsymLR.PlotDf, measurevar="values", groupvars=c("ind"))
+out<-psych::describe.by(AsymLR.ParamDfPlotDf, group = AsymLR.ParamDfPlotDf$ind)
+median <- c(out$median[1], out$median[2])
+paramPlot <- cbind(paramPlot, data.frame(median))
+names(paramPlot)[3] <- "mean"
+```
+
+```{r}
+setwd("~/Google Drive/Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/output/")
+write.csv(AsymLR.ParamDfPlotDf, "PlotDf.csv", row.names = FALSE)
+write.csv(paramPlot, "paramPlot.csv", row.names = FALSE)
+```
+
+```{r}
+library(corrr)
+library(ggplot2)
+library(dplyr)
+indDiff <- read.csv("./output/fMRIfeedinvDfclean.csv")
+indDiff<-indDiff[c(1,grep("^Polit$", colnames(indDiff)):grep("^Status$", colnames(indDiff)), grep("^RS$", colnames(indDiff)):ncol(indDiff))]
+AsymLR.corDf <- merge(GraphMix.ParamDf[1:4], indDiff, by = "subID")
+x <- AsymLR.corDf[c(grep("^negLR$", colnames(AsymLR.corDf)),5:ncol(AsymLR.corDf))] %>% 
+  correlate() %>% 
+  focus(negLR)
+negLR_AsymLR_corDf <- x[order(-x$negLR),]
+
+x <- AsymLR.corDf[c(grep("^posLR$", colnames(AsymLR.corDf)),5:ncol(AsymLR.corDf))] %>% 
+  correlate() %>% 
+  focus(posLR)
+posLR_AsymLR_corDf <- x[order(-x$posLR),]
+
+x <- AsymLR.corDf[c(grep("^mix$", colnames(AsymLR.corDf)),5:ncol(AsymLR.corDf))] %>% 
+  correlate() %>% 
+  focus(mix)
+mix_AsymLR_corDf <- x[order(-x$mix),]
+
+```
+
+```{r}
+setwd("~/Google Drive/Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/output/")
+write.csv(AsymLR.corDf, "AsymLR.corDf.csv", row.names = FALSE)
+write.csv(posLR_AsymLR_corDf, "posLR.corDf.csv", row.names = FALSE)
+write.csv(negLR_AsymLR_corDf, "negLR.corDf.csv", row.names = FALSE)
+write.csv(mix_AsymLR_corDf, "mix.corDf.csv", row.names = FALSE)
+```
+

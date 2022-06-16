@@ -1,0 +1,148 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(readbulk)
+library(MASS)
+library(lme4)
+library(lmerTest)
+library(tidyverse)
+library(ggeffects)
+```
+
+```{r}
+setwd("~/Google Drive/")
+getwd()
+fullDf <- read.csv("./Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/fullTempDiffDf.csv")
+tbtDf <- read.csv("./Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/trialBytrial.Df.csv")
+mergedRaw <- read_bulk(directory = "./Volumes/Research Project/Social Evaluative Feedback fMRI/fMRI Analysis/ROI Interaction/PEs/PE1out/", extension = ".csv", fun = read.csv, header = FALSE)
+```
+
+
+```{r}
+tbtNeigh <- read.csv("~/Google Drive/Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/output/tbtNeigh.csv")
+distDf <- read.csv("~/Google Drive/Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/output/distTravDf.csv")
+tbtDf$noCh <- ifelse(tbtDf$changeScore == 0, 1, 0)
+tbtDf$pCh <- scale(ifelse(tbtDf$changeScore > 0, tbtDf$changeScore, 0))
+tbtDf$nCh <- scale(ifelse(tbtDf$changeScore < 0, tbtDf$changeScore, 0))
+posCents <- read.csv("~/Google Drive/Volumes/Research Project/Trait Network_Behaviral/generating network/output/allPosCents.csv")
+names(posCents)[1] <- "Trait"
+tbtDf <- merge(tbtDf, tbtNeigh[c("subID","trialTotalT1","T1averageAllVE")], by = c("subID", "trialTotalT1"))
+tbtDf <- merge(tbtDf, distDf[c("subID","trialTotalT1","outDist2", "outDist2cum")], by = c("subID", "trialTotalT1"))
+tbtDf <- merge(tbtDf, posCents[c("Trait", "inDegree")], by = c("Trait"))
+#tbtDf$valEstDist <- abs(tbtDf$valEst-tbtDf$T1averageAllVE)
+```
+
+
+```{r}
+setwd("~/Google Drive/")
+getwd()
+fullDf <- read.csv("./Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/output/fullTDdf.csv")
+tbtDf <- read.csv("./Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/output/trialBytrial.Df.csv")
+# mergedRaw <- read_bulk(directory = "./Volumes/Research Project/Social Evaluative Feedback fMRI/fMRI Analysis/ROI Interaction/PEs/discrepOut/traitvmPFCmask/", extension = ".csv", fun = read.csv, header = FALSE)
+mergedRaw <- read_bulk(directory = "./Volumes/Research Project/Social Evaluative Feedback fMRI/fMRI Analysis/ROI Interaction/PEs/discrepOut/discrepOutvmPFC/", extension = ".csv", fun = read.csv, header = FALSE)
+```
+
+load and cleaning up
+
+```{r}
+cleanDf <- mergedRaw %>% separate(File, c("subID","PE"), sep = "_discrepOut_PE")
+cleanDf$PE <- gsub(".csv","",cleanDf$PE)
+```
+
+changing to wide
+
+```{r}
+cleanDf <- pivot_wider(cleanDf, values_from = "V1", names_from = "PE", names_prefix = "PE.")
+```
+
+okay, so then I tried merging the average predicted activation per subject with the multilevel dataframe with level 1 units for prederror and outdegree. it still turns out weird
+
+```{r}
+
+tbtDf <- merge(tbtDf, cleanDf[c("subID","PE.1","PE.2","PE.3")], by="subID")
+```
+
+so I decided to try computing a different predicted activation that takes the subject level parameter estimates and multiplies them with the trial level outdegree and prederror variables to compute trial level predicted activation
+
+```{r}
+data.frame(tbtDf$PE.1, scale(tbtDf$feedback), tbtDf$PE.2, scale(tbtDf$outDegree), tbtDf$PE.3, scale(tbtDf$outDegree), scale(tbtDf$feedback))
+
+tbtDf$predAct = tbtDf$PE.1 * scale(tbtDf$feedback) + tbtDf$PE.2 * scale(tbtDf$outDegree) + tbtDf$PE.3 * scale(tbtDf$outDegree) * scale(tbtDf$feedback)
+```
+
+here is the model and plot for that
+
+```{r}
+m <- lmer(predAct ~ outDegree * feedback + (outDegree + feedback | subID), data = tbtDf, 
+            control = lmerControl(optimizer = "bobyqa",
+                                  optCtrl = list(maxfun=2e5)), REML = FALSE)
+summary(m)
+
+```
+```{r}
+#ggpredict(m, terms = c("outDegree","predError")) %>% plot()
+p <- ggpredict(m, terms = c("outDegree","feedback[1,4,7]"))
+plotOUTPEVMPFC<-ggplot(p, aes(x, predicted)) +  geom_line(aes(linetype=group, color=group)) + geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), alpha=0.15) + scale_linetype_discrete(labels = c("Negative Feedback","Moderate Feedback", "Positive Feedback")) + scale_color_discrete(labels = c("Negative Feedback","Moderate Feedback", "Positive Feedback")) + scale_fill_discrete( 
+                      labels=c("Negative Feedback","Moderate Feedback", "Positive Feedback")) + theme(
+    legend.position = c(.05, .69),
+    legend.justification = c("left", "bottom"),
+    legend.box.just = "left",
+    legend.margin = margin(6, 6, 6, 6)
+    ) + theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Outdegree Centrality") + ylab("vmPFC Parameter Estimate")
+# jpeg("~/Documents/UC Riverside/Studies/fMRI Feedback/Manuscript/Figures/vmPFCoutFeed.jpg", units="in", width=6, height=4, res=300)
+# insert ggplot code
+plotOUTPEVMPFC
+# dev.off()
+
+ggsave(plot = plotOUTPEVMPFC, filename = "~/Documents/UC Riverside/Studies/fMRI Feedback/Manuscript/Figures/vmPFCoutFeed.jpg", dpi = 600, units="in", height = 10, width = 4)
+```
+
+## predError by Outdegree Interaction Plot
+
+```{r}
+changePlotModel <- lmer( changeScore ~ valEstF + predError*outDegree + inDegree + ( valEstF + predError |subID) + ( 1 |Trait), data = fullTDdf, 
+              control = lmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun=2e5)))
+
+T2T1m <- lmer( selfRespT2 ~ selfRespT1 + ( selfRespT1 |subID) + ( selfRespT1 | Trait), data = fullTDdf, 
+              control = lmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun=2e5)))
+T2T1res <- resid(T2T1m)
+fullTDdf$residuals <- NA
+fullTDdf$residuals[!is.na(fullTDdf$selfRespT1) & !is.na(fullTDdf$selfRespT2)] <- T2T1res
+
+T2T1m <- lmer( residuals ~ valEstF + predError*outDegree + ( valEstF + predError |subID) + ( valEstF + predError | Trait), data = fullTDdf, 
+              control = lmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun=2e5)))
+```
+
+
+```{r}
+p <- ggpredict(T2T1m, c("outDegree","predError"))
+plotOUTPE<-ggplot(p, aes(x, predicted)) +  geom_line(aes(linetype=group, color=group)) + geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), alpha=0.15) + scale_linetype_discrete(labels = c("Low PE","Mid PE", "High PE")) + scale_color_discrete(labels = c("Low PE","Mid PE", "High PE")) + scale_fill_discrete( 
+                      labels=c("Low PE", "Mid PE", "High PE")) + theme(
+    legend.position = c(.6, .065),
+    legend.justification = c("left", "bottom"),
+    legend.box.just = "left",
+    legend.margin = margin(6, 6, 6, 6)
+    ) + theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  xlab("Outdegree Centrality") + ylab("Residualized Change")
+plotOUTPE
+```
+
+```{r}
+comb <- ggpubr::ggarrange(plotOUTPE, plotOUTPEVMPFC)
+comb
+ggsave(plot=comb, filename="~/Documents/UC Riverside/Studies/fMRI Feedback/Manuscript/Figures/outcomb.jpg", dpi=600, units="in", width=12, height = 4)
+```
+

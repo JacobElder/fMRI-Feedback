@@ -24,8 +24,17 @@ library(psychReport)
 library(jtools)
 library(compiler)
 library(ordinal)
+library(forcats)
+library(sjPlot)
 Cconfint<-cmpfun(confint)
 ```
+
+```{r}
+library(devtools)
+source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/corToOne.R")
+```
+
+
 # Set dir for figures
 
 ```{r}
@@ -50,7 +59,23 @@ agDf <- read.csv("agDf.csv")
 agVDf <- read.csv("agVDf.csv")
 fullTDdf$valFeed <- as.factor(fullTDdf$valFeed)
 fullTDdf$clustType <- as.factor(fullTDdf$clustType)
+modelPerform <- read.csv("propagationModelPerformFinal.csv")
+modelPerform<-modelPerform[2:nrow(modelPerform),]
+indDiff <- read.csv("fMRIfeedinvDfclean.csv")
+indDiffs <- merge(indDiff, AsymLR.ParamDf[c("posLR","negLR","mix","subID")],by="subID")
 ```
+
+# Model Comparison
+
+```{r}
+
+p<-ggplot(data=modelPerform, aes(x=modelNames, y=AICdiffs)) +
+geom_bar(stat="identity", position=position_dodge()) + coord_flip() + theme(axis.text.x=element_text(angle = 90, hjust=1, vjust=0.5, size = 10)) + scale_y_reverse() 
+p + aes(x = fct_inorder(modelNames) ) + jtools::theme_apa() + xlab("Models") + ylab(expression("AIC Base" ~ Delta)) + scale_x_discrete(
+        labels=rev(c(expression(phi),"B-Propagate","A-Propagate","F-Propagate",expression("Asym." ~ alpha)))) + theme(text = element_text(size=15), axis.text.y = element_text(angle=45, hjust=1))
+ggsave(paste0(curWd,"Figures/modelComp.tiff"), dpi=600)
+```
+
 
 # Tests of Learning Rates
 
@@ -319,6 +344,7 @@ data.frame(b$Effect, b$Rsq)
 confint(ZreEvalModelFinal)
 ```
 
+
 ```{r}
 finalRE <- lmer(scale(as.numeric(selfRespT2)) ~ scale(selfRespT1) + scale(valEstF) + scale(predError)*scale(outDegree) + scale(valEstF)+scale(outDegree) + ( scale(predError) + scale(valEstF) |subID) + (scale(predError) + scale(valEstF) | Trait), data = fullTDdf, 
               control = lmerControl(optimizer = "bobyqa",
@@ -374,7 +400,7 @@ plotOUTPE<-ggplot(p, aes(x, predicted)) +  geom_line(aes(linetype=group, color=g
     ) + theme(axis.text=element_text(size=12),
         axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black")) +
-  xlab("Outdegree Centrality") + ylab("Residuals")
+  xlab("Outdegree Centrality") + ylab("Residualized Change")
 plotOUTPE
 
 ggsave(paste0(curWd,"Figures/outPE.tiff"), dpi=600)
@@ -385,23 +411,13 @@ ggsave(paste0(curWd,"Figures/outPE.tiff"), dpi=600)
 ## Correlations with Positive Learning Rate
 
 ```{r}
-indDiffPlot <- posLR.corDf %>% 
-  mutate(rowname = factor(rowname, levels = rowname[order(posLR)])) %>%  # Order by correlation strength
-  ggplot(aes(x = rowname, y = posLR)) +
-    geom_bar(stat = "identity") +
-    ylab("Correlation Coefficient") +
-    xlab("Individual Differences") + theme_grey(base_size = 9)  + theme(axis.text.x = element_text(angle = 90,hjust = 1)) +
-  theme(axis.text.x = element_text( 
-                           size = 9, angle = 45, vjust = 1)) + theme(axis.title.x = element_text(vjust=1.9)) +
-  annotate("text", x = 15, y = .543, label = "*") +
-  annotate("text", x = 14, y = .464, label = "*") +
-  annotate("text", x = 1, y = -.525, label = "*")+
-  annotate("text", x = 2, y = -.493, label = "*")+
-  annotate("text", x = 3, y = -.423, label = "*") + theme(axis.text=element_text(size=9),
-        axis.title=element_text(size=9,face="bold")) + theme(legend.text = element_text(size=9)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-panel.background = element_blank(), axis.line = element_line(colour = "black"))
 
-jpeg("~/Documents/UC Riverside/Studies/Feedback Study/Manuscript/Figures/posLRindDiffp.jpg", units="in", width=6, height=4, res=300)
+indDiffs %>% dplyr::select("posLR","RS","MAIA.All","LSA","Depr","NARQ","NARQa","NARQr","DS","SE","BF.EXT","BF.AGR","BF.CON","BF.OPE","BF.NEG", "DT.M","DT.P","BFNE","SAM","SOS") %>% corToOne(., "posLR")
+
+
+indDiffs %>% dplyr::select("posLR","RS","MAIA.All","LSA","Depr","NARQ","NARQa","NARQr","DS","SE","BF.EXT","BF.AGR","BF.CON","BF.OPE","BF.NEG", "DT.M","DT.P","BFNE","SAM","SOS") %>% plotCorToOne(., "posLR")
+
+ggsave(paste0(curWd,"Figures/posLR.tiff"), dpi=600)
 # insert ggplot code
 indDiffPlot
 dev.off()
@@ -422,14 +438,10 @@ PLR_pcol
 ## Correlations with Negative Learning Rate
 
 ```{r}
-negLR.corDf %>% 
-  mutate(rowname = factor(rowname, levels = rowname[order(negLR)])) %>%  # Order by correlation strength
-  ggplot(aes(x = rowname, y = negLR)) +
-    geom_bar(stat = "identity") +
-    ylab("Correlation with\nPositive Learning Rate") +
-    xlab("Individual Differences") + theme_grey(base_size = 15)  + theme(axis.text.x = element_text(angle = 90,hjust = 1))+ theme_apa() +
-  theme(axis.text.x = element_text( 
-                           size = 11, angle = 45, vjust = 0.7)) + theme(axis.title.x = element_text(vjust=1.9))
+indDiffs %>% dplyr::select("negLR","RS","MAIA.All","LSA","Depr","NARQ","NARQa","NARQr","DS","SE","BF.EXT","BF.AGR","BF.CON","BF.OPE","BF.NEG", "DT.M","DT.P","BFNE","SAM","SOS") %>% corToOne(., "negLR")
+
+
+indDiffs %>% dplyr::select("negLR","RS","MAIA.All","LSA","Depr","NARQ","NARQa","NARQr","DS","SE","BF.EXT","BF.AGR","BF.CON","BF.OPE","BF.NEG", "DT.M","DT.P","BFNE","SAM","SOS") %>% plotCorToOne(., "negLR")
 ```
 
 ### FDR Correction
@@ -446,15 +458,12 @@ NLR_pcol
 ## Correlations with Mix
 
 ```{r}
-decay.corDf %>% 
-  mutate(rowname = factor(rowname, levels = rowname[order(decay)])) %>%  # Order by correlation strength
-  ggplot(aes(x = rowname, y = decay)) +
-    geom_bar(stat = "identity") +
-    ylab("Correlation with\nPositive Learning Rate") +
-    xlab("Individual Differences") + theme_grey(base_size = 15)  + theme(axis.text.x = element_text(angle = 90,hjust = 1))+ theme_apa() +
-  theme(axis.text.x = element_text( 
-                           size = 11, angle = 45, vjust = 0.7)) + theme(axis.title.x = element_text(vjust=1.9))
+indDiffs %>% dplyr::select("mix","RS","MAIA.All","LSA","Depr","NARQ","NARQa","NARQr","DS","SE","BF.EXT","BF.AGR","BF.CON","BF.OPE","BF.NEG", "DT.M","DT.P","BFNE","SAM","SOS") %>% corToOne(., "mix")
+
+
+indDiffs %>% dplyr::select("mix","RS","MAIA.All","LSA","Depr","NARQ","NARQa","NARQr","DS","SE","BF.EXT","BF.AGR","BF.CON","BF.OPE","BF.NEG", "DT.M","DT.P","BFNE","SAM","SOS") %>% plotCorToOne(., "mix")
 ```
+
 
 ### FDR Correction
 
@@ -481,5 +490,9 @@ rand.test(AsymLR.corDf[3], AsymLR.corDf[c("RS","MAIA.All","LSA","Depr","NARQ","N
 rand.test(AsymLR.corDf[4], AsymLR.corDf[c("RS","MAIA.All","LSA","Depr","NARQ","NARQa","NARQr","DS","SE","BF.EXT","BF.AGR","BF.CON","BF.OPE","BF.NEG", "DT.M","DT.P","BFNE","SAM","SOS")], sims = 50000, crit = 0.95, graph = TRUE, seed = 2)
 ```
 
+```{r}
+library(apaTables)
+indDiffs %>% dplyr::select("posLR", "negLR", "mix","RS","MAIA.All","LSA","Depr","NARQ","NARQa","NARQr","DS","SE","BF.EXT","BF.AGR","BF.CON","BF.OPE","BF.NEG", "DT.M","DT.P","BFNE","SAM","SOS") %>% apa.cor.table(., filename = paste0(curWd,"Tables/CorTable.doc"))
+```
 
 
