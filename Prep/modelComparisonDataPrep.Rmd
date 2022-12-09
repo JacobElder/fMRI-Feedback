@@ -545,6 +545,14 @@ AICs<-c(sum(Base.ParamDf$AIC),
   sum(GraphSim.ParamDf$AIC),
   sum(GraphMix.ParamDf$AIC)
   )
+BICs<-c(sum(Base.ParamDf$BIC),
+  sum(AsymLR.ParamDf$BIC),
+  sum(GraphOutProp.ParamDf$BIC),
+  sum(GraphInProp.ParamDf$BIC),
+  sum(GraphAllProp.ParamDf$BIC),
+  sum(GraphSim.ParamDf$BIC),
+  sum(GraphMix.ParamDf$BIC)
+  )
 modelNames<-c("Base",
              "AsymLR",
              "ForProp",
@@ -554,8 +562,68 @@ modelNames<-c("Base",
              "Mixture"
              )
 
-modelPerform<-data.frame(modelNames, AICs)
-modelPerform$AICdiffs <- modelPerform$AICs - modelPerform$AICs[1]
+modelPerform<-data.frame(modelNames, AICs, BICs)
+
+# AsymLR
+
+# AsymLR vs. Base
+modelPerform$AICs[modelPerform$modelNames=="AsymLR"] - modelPerform$AICs[modelPerform$modelNames=="Base"]
+modelPerform$BICs[modelPerform$modelNames=="AsymLR"] - modelPerform$BICs[modelPerform$modelNames=="Base"]
+
+# Overall Propagation
+
+# Overall Propagation vs. AsymLR
+modelPerform$AICs[modelPerform$modelNames=="AllProp"] - modelPerform$AICs[modelPerform$modelNames=="AsymLR"]
+modelPerform$BICs[modelPerform$modelNames=="AllProp"] - modelPerform$BICs[modelPerform$modelNames=="AsymLR"]
+
+# Overall Propagation vs. Back-Propagation
+modelPerform$AICs[modelPerform$modelNames=="AllProp"] - modelPerform$AICs[modelPerform$modelNames=="BackProp"]
+modelPerform$BICs[modelPerform$modelNames=="AllProp"] - modelPerform$BICs[modelPerform$modelNames=="BackProp"]
+
+# Overall Propagation vs. Back-Propagation
+modelPerform$AICs[modelPerform$modelNames=="AllProp"] - modelPerform$AICs[modelPerform$modelNames=="ForProp"]
+modelPerform$BICs[modelPerform$modelNames=="AllProp"] - modelPerform$BICs[modelPerform$modelNames=="ForProp"]
+
+# Forward Propagation
+
+# Forward Propagation vs. AsymLR
+modelPerform$AICs[modelPerform$modelNames=="ForProp"] - modelPerform$AICs[modelPerform$modelNames=="AsymLR"]
+modelPerform$BICs[modelPerform$modelNames=="ForProp"] - modelPerform$BICs[modelPerform$modelNames=="AsymLR"]
+
+# Forward Propagation vs. Back-Propagation
+modelPerform$AICs[modelPerform$modelNames=="ForProp"] - modelPerform$AICs[modelPerform$modelNames=="BackProp"]
+modelPerform$BICs[modelPerform$modelNames=="ForProp"] - modelPerform$BICs[modelPerform$modelNames=="BackProp"]
+
+# Forward Propagation vs. Overall Propagation
+modelPerform$AICs[modelPerform$modelNames=="ForProp"] - modelPerform$AICs[modelPerform$modelNames=="AllProp"]
+modelPerform$BICs[modelPerform$modelNames=="ForProp"] - modelPerform$BICs[modelPerform$modelNames=="AllProp"]
+
+# Backward Propagation
+
+# Backward Propagation vs. AsymLR
+modelPerform$AICs[modelPerform$modelNames=="BackProp"] - modelPerform$AICs[modelPerform$modelNames=="AsymLR"]
+modelPerform$BICs[modelPerform$modelNames=="BackProp"] - modelPerform$BICs[modelPerform$modelNames=="AsymLR"]
+
+# Backward Propagation vs. Back-Propagation
+modelPerform$AICs[modelPerform$modelNames=="BackProp"] - modelPerform$AICs[modelPerform$modelNames=="ForProp"]
+modelPerform$BICs[modelPerform$modelNames=="BackProp"] - modelPerform$BICs[modelPerform$modelNames=="ForProp"]
+
+# Backward Propagation vs. Overall Propagation
+modelPerform$AICs[modelPerform$modelNames=="BackProp"] - modelPerform$AICs[modelPerform$modelNames=="AllProp"]
+modelPerform$BICs[modelPerform$modelNames=="BackProp"] - modelPerform$BICs[modelPerform$modelNames=="AllProp"]
+
+# Mixture
+
+# Mixture vs. Back-Propagation
+modelPerform$AICs[modelPerform$modelNames=="Mixture"] - modelPerform$AICs[modelPerform$modelNames=="BackProp"]
+modelPerform$BICs[modelPerform$modelNames=="Mixture"] - modelPerform$BICs[modelPerform$modelNames=="BackProp"]
+
+# Proportion of participants for which back-propagation outperforms all-propagation
+sum(GraphAllProp.ParamDf$AIC > GraphInProp.ParamDf$AIC)/length(GraphInProp.ParamDf$AIC)
+
+
+
+#modelPerform$AICdiffs <- modelPerform$AICs - modelPerform$AICs[1]
 
 write.csv(modelPerform, "~/Google Drive/Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/propagationModelPerformFinal.csv", row.names = F)
 ```

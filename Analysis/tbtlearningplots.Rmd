@@ -1,0 +1,115 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+setwd("/Volumes/GoogleDrive/My Drive/Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/output/")
+tBt_Df <- read.csv("trialBytrial.Df.csv")
+tBt_Df$clustType <- as.factor(tBt_Df$clustType)
+
+```
+
+```{r}
+tBt_Df2 <- tBt_Df %>% select(subID,trialTotalT1,valEst,selfRespT1) %>% pivot_longer(cols=c(valEst,selfRespT1), names_to="respType", values_to = "resp", )
+ggplot(tBt_Df2, aes(x=trialTotalT1, y=resp )) +
+  geom_line(aes(linetype=respType))
+```
+
+
+```{r}
+aggrPreds <- tBt_Df %>% group_by(trialTotalT1) %>% summarise(valEstM = mean(valEst, na.rm=T),
+                                                selfRespM = mean(selfRespT1, na.rm=T))
+aggPredsL <- aggrPreds %>% pivot_longer(cols=valEstM:selfRespM, names_to="respType", values_to = "resp", )
+#aggPredsL$clustType <- as.factor(aggPredsL$clustType)
+```
+
+```{r}
+ggplot(aggPredsL, aes(x=trialTotalT1, y=resp )) +
+  geom_line(aes(linetype=respType))
+```
+
+```{r}
+# tBt_Df$valEst <- scale(tBt_Df$valEst)
+# tBt_Df$selfRespT1 <- scale(tBt_Df$selfRespT1)
+aggrPreds <- tBt_Df %>% group_by(trialTotalT1,clustType) %>% summarise(valEstM = mean(valEst, na.rm=T),
+                                                selfRespM = mean(selfRespT1, na.rm=T))
+aggPredsL <- aggrPreds %>% pivot_longer(cols=valEstM:selfRespM, names_to="respType", values_to = "resp", )
+#aggPredsL$clustType <- as.factor(aggPredsL$clustType)
+```
+
+```{r}
+ggplot(aggPredsL, aes(x=trialTotalT1, y=resp, color=as.factor(clustType) )) +
+  geom_line(aes(linetype=respType))
+```
+
+```{r}
+# tBt_Df$valEst <- scale(tBt_Df$valEst)
+# tBt_Df$selfRespT1 <- scale(tBt_Df$selfRespT1)
+aggrPreds <- tBt_Df %>% group_by(trialTotalT1,clustType) %>% summarise(valEstM = mean(valEst, na.rm=T),
+                                                selfRespM = mean(selfRespT1, na.rm=T))
+aggPredsL <- aggrPreds %>% pivot_longer(cols=valEstM:selfRespM, names_to="respType", values_to = "resp", )
+#aggPredsL$clustType <- as.factor(aggPredsL$clustType)
+```
+
+```{r}
+ggplot(aggPredsL, aes(x=trialTotalT1, y=resp, color=as.factor(clustType) )) +
+  geom_line(aes(linetype=respType))
+```
+
+```{r}
+sub14 <- subset(tBt_Df, subID==14)
+#sub14s <- sub14 %>% select(trialTotalT1, clustType, valEst, selfRespT1)
+sub14s <- sub14 %>% select(trialTotalT1, valEst, selfRespT1)
+sub14sl <- sub14s %>% pivot_longer(cols=valEst:selfRespT1, names_to="respType", values_to = "resp", )
+ggplot(sub14sl, aes(x=trialTotalT1, y=resp)) +
+  geom_line(aes(linetype=respType))
+```
+
+```{r}
+sub14 <- subset(tBt_Df, subID==14)
+#sub14s <- sub14 %>% select(trialTotalT1, clustType, valEst, selfRespT1)
+sub14s <- sub14 %>% select(trialTotalT1, valEst, selfRespT1)
+sub14s$valEst <- scale(sub14s$valEst)
+sub14s$selfRespT1 <- scale(sub14s$selfRespT1)
+sub14sl <- sub14s %>% pivot_longer(cols=valEst:selfRespT1, names_to="respType", values_to = "resp", )
+ggplot(sub14sl, aes(x=trialTotalT1, y=resp)) +
+  geom_line(aes(linetype=respType))
+```
+
+```{r}
+top10 <- GraphMix.ParamDf %>% arrange(BIC) %>% head(n=10) %>% pull(subID)
+for(i in 1:length(top10)){
+  n<-top10[i]
+  sub <- subset(tBt_Df, subID==n)
+  subs <- sub %>% select(trialTotalT1, valEst, selfRespT1)
+  subs$valEst <- scale(subs$valEst)
+  subs$selfRespT1 <- scale(subs$selfRespT1)
+  subsl <- subs %>% pivot_longer(cols=valEst:selfRespT1, names_to="respType", values_to = "resp", )
+  p <- ggplot(subsl, aes(x=trialTotalT1, y=resp)) +
+  geom_line(aes(linetype=respType))
+  assign(paste0("Plot",i),p)
+}
+
+library(ggpubr)
+ggarrange(Plot1,Plot2,Plot3,Plot4,nrow=2,ncol=2)
+ggsave("~/Desktop/learningFigs.png",height=10,width=18,units="in")
+```
+
+
+```{r}
+topDf <- tBt_Df[which(tBt_Df$subID %in% top10),]
+topDfs <- topDf %>% select(subID, trialTotalT1, valEst, selfRespT1)
+topDfs$valEst <- scale(topDfs$valEst)
+topDfs$selfRespT1 <- scale(topDfs$selfRespT1)
+topDfsl <- topDfs %>% pivot_longer(cols=valEst:selfRespT1, names_to="respType", values_to = "resp", )
+ggplot(topDfsl, aes(x=trialTotalT1, y=resp, color=as.factor(subID))) +
+  geom_line(aes(linetype=respType))
+```
+
+
+

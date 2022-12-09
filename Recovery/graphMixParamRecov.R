@@ -1,4 +1,4 @@
-graphMixParamRecov <- function(param, type = "in"){
+graphMixParamRecov <- function(param, type = "in", graph){
   library(igraph)
   library(compiler)
   
@@ -59,7 +59,7 @@ graphMixParamRecov <- function(param, type = "in"){
   IdxCluster4<-sample(Idx[85:125], replace = F)
   IdxCluster5<-sample(Idx[126:148], replace = F)
   counter <- c(1, 1, 1, 1, 1)
-  feat <- sample(feat, length(feat), replace = F)
+  feat <- sample(featOrdered, length(featOrdered), replace = F)
   #clustAssign <- sample(c(1,2,3,4,5), 5, replace = F)
   probs <- c(.9, .7, .5, .3, .1)
   probsAssign <- sample(probs, 5, replace = F)

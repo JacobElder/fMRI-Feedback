@@ -4,16 +4,14 @@ output: html_notebook
 ---
 
 ```{r}
-library(geoR)
-library(optimx)
-library(ggplot2)
-library(compiler)
-library(doParallel)
-library(parallel)
-library(lme4)
-library(lmerTest)
+library(here)
+library(groundhog)
+pkgs <- c("ggplot2","optimx","igraph","compiler","doParallel","parallel","lmerTest","lme4")
 library(Hmisc)
-library(igraph)
+groundhog.day <- "2022-07-25"
+groundhog.library(pkgs, groundhog.day)
+library(here)
+here::i_am("./Recovery/fMRIparameterfeedRecovery.Rmd")
 setwd("~/Google Drive/Volumes/")
 allCents <- read.csv("./Research Project/Trait Network_Behaviral/generating network/output/allPosCents.csv")
 fullDf <- read.csv("./Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/fullDf.csv")
@@ -26,11 +24,10 @@ fullDf <- merge(fullDf, allCents, by="Trait")
 ```
 
 ```{r}
-
 setwd("~/Google Drive/Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/RL Models/")
 source("graphMix.R")
 cGraphMix <- cmpfun(graphMix)
-source("graphMixParamRecov.R")
+source(here("Recovery","graphMixParamRecov.R"))
 cGraphMixParamRecov <- cmpfun(graphMixParamRecov)
 cOptimx <- cmpfun(optimx)
   zScore <- function(input, m, s){
@@ -39,7 +36,8 @@ cOptimx <- cmpfun(optimx)
   }
   zScore <- cmpfun(zScore)
 ```
-````{r}
+
+```{r}
 setwd("~/Google Drive/Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/output/")
 AsymLR.ParamDf <- read.csv("GraphMix.ParamDf.csv")
 tBt_Df <- read.csv("trialBytrial.Df.csv")
@@ -48,7 +46,7 @@ tBt_Df <- read.csv("trialBytrial.Df.csv")
 # import workspace since it takes a long time to re-run
 
 ```{r}
-load("~/Google Drive/Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/fMRIparameterRecover_2021_08_05_JE.RData")
+#load("~/Google Drive/Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/fMRIparameterRecover_2021_08_05_JE.RData")
 ```
 
 
@@ -95,7 +93,7 @@ ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
     size = 25) )+
  coord_fixed()
 
-greekLab <- c(expression(alpha[p]), expression(alpha[n]), expression(mu) )
+greekLab <- c(expression(alpha[p]), expression(alpha[n]), expression(phi) )
 
 OrigOrigHeatMap <- ggheatmap + 
 geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
@@ -118,53 +116,12 @@ theme(
 OrigOrigHeatMap
 ```
 
-# Fit original parameters
-
-```{r}
-#   set.seed(132)
-#   fullDf <- fullDf[!is.na(fullDf$selfRespT1),] # Remove missing responses; data will not fit with missing responses included
-#   fullDf <- fullDf[order(fullDf$subID, fullDf$trialTotalT1),] # Sort by trials for trial-by-trial learning
-#   uIds <- unique(fullDf$subID)
-#   x = c("subID", "posLR", "negLR", "mix", "LL", "k", "n", "BIC", "AIC")
-#   k = 3
-# 
-#   core<-detectCores()
-#   cl <- parallel::makeCluster(core-1, setup_strategy = "sequential")
-#   setDefaultCluster(cl=cl)
-#   registerDoParallel(cl)
-#   clusterExport(cl, list("cGraphSim"))
-#   clusterExport(cl, list("x"))
-#   clusterExport(cl, list("k"))
-#   clusterExport(cl, list("fullDf"))
-#   
-# result<-foreach(i=uIds, .combine = rbind.data.frame, .export=c('cGraphMix', 'cOptimx', 'fullDf', 'x', 'k'), .packages = c("compiler", "optimx")) %dopar% {
-#   paramDf <- as.data.frame(matrix(ncol = length(x) ))
-#   names(paramDf) <- x
-#   subDf <- subset(fullDf, subID == i) # Subset participant data
-#   SSE <- function(param){ sum((subDf$selfRespT1  - (cGraphMix(subDf$trialTotalT1,subDf$Idx,subDf$feedback,4,posGraph,type="in",cue="single",param)$Value))^2) } # Set objective function for SSE
-#   (output <- optimx(par = c(.04, .04, .5), method = c("L-BFGS-B"), fn = SSE, lower = c(0, 0, 0), upper = c(1,1, 1))) # Set parameters for optimization
-#   paramDf$subID <- i
-#   paramDf$posLR <- output$p1
-#   paramDf$negLR <- output$p2
-#   paramDf$mix <- output$p3
-#   paramDf$k <- k
-#   paramDf$n <- nrow(subDf)
-#   paramDf$LL <- output$value
-#   paramDf$BIC <- nrow(subDf) * log(output$value/nrow(subDf)) + k * log(nrow(subDf)) # Compute BIC
-#   paramDf$AIC <- 2 * k + nrow(subDf) * log(output$value/nrow(subDf))
-#   paramDf
-#     
-# }
-# stopCluster(cl)  
-# GraphMix.ParamDf <- result
-```
-
 # Generate simulated parameters
 
 ```{r}
 set.seed(52)
 
-iter<- 100
+iter<- 500
 
 posLRseq<-seq(from = quantile(AsymLR.ParamDf$posLR)[2], to = quantile(AsymLR.ParamDf$posLR)[4], length.out = 5)
 negLRseq<-seq(from = quantile(AsymLR.ParamDf$negLR)[2], to = quantile(AsymLR.ParamDf$negLR)[4], length.out = 5)
@@ -175,19 +132,36 @@ negLRnoised <- c()
 mixnoised <- c()
 
 bounded <- function(param){
-  if(param>1){
+  if(param>=1){
     param <- 1
-  } else if(param<0){
+  } else if(param<=0){
     param <- 0
   }
-  return(param)
 }
+boundedRnorm <- function(n, mean = 0, sd = 1, lb = -1, ub = 1){
+  output <- rnorm(n, mean, sd)
+  if(n > 1){
+    while(any(output < 0) | any(output > 1)){
+    inds <- which(output > 1 | output < 0)
+    output[inds] <- rnorm(length(inds), mean, sd)
+  }
+  } else if (n == 1){
+    while(output < 0 | output > 1){
+    output <- rnorm(n, mean, sd)
+    }
+  }
+  return(output)
+}
+
 for(i in 1:5){
   for(k in 1:(iter/5)){
     
-    posLRnoised <- c(posLRnoised, bounded(rnorm(1, posLRseq[i], sd(AsymLR.ParamDf$posLR)/4 )) )
-    negLRnoised <- c(negLRnoised, bounded(rnorm(1, negLRseq[i], sd(AsymLR.ParamDf$negLR)/4 )) )
-    mixnoised <- c(mixnoised, bounded(rnorm(1, mixseq[i], sd(AsymLR.ParamDf$mix)/4 )) )
+    #posLRnoised <- c(posLRnoised, bounded(rnorm(1, posLRseq[i], sd(AsymLR.ParamDf$posLR)/4 )) )
+    posLRnoised <- c(posLRnoised, boundedRnorm( 1, posLRseq[i], sd(AsymLR.ParamDf$posLR)/4 ))
+    #negLRnoised <- c(negLRnoised, bounded(rnorm(1, negLRseq[i], sd(AsymLR.ParamDf$negLR)/4 )) )
+    negLRnoised <- c(negLRnoised, boundedRnorm( 1, negLRseq[i], sd(AsymLR.ParamDf$negLR)/4 ) )
+    #mixnoised <- c(mixnoised, bounded(rnorm(1, mixseq[i], sd(AsymLR.ParamDf$mix)/4 )) )
+    mixnoised <- c(mixnoised, boundedRnorm(1, mixseq[i], sd(AsymLR.ParamDf$mix)/4 ))
 
   }
 }
@@ -216,7 +190,7 @@ set.seed(42)
 for(i in 1:iter){
   
   sampParams<-c(seqParams$posLR[i], seqParams$negLR[i], seqParams$mix[i])
-  curSim<-graphMixParamRecov(sampParams, type = "in")
+  curSim<-graphMixParamRecov(sampParams, type = "in", graph = posGraph)
   sampParams<-c(sampParams, i)
   curSim <- cbind(curSim, i)
   simulated<-rbind(simulated, curSim)
@@ -231,12 +205,9 @@ simParams<-as.data.frame(simParams)
 names(simParams) <- c("posLR","negLR","mix","simID")
 names(simulated)[colnames(simulated)=="i"] <- "simID"
 ```
-
-# Iterate from lambda = .05 to lambda = 1 to find lambda best recovery
+# OLS fits on simulated data
 
 ```{r}
-
-  lambda <- .15
 
   set.seed(132)
   simulated <- simulated[!is.na(simulated$SR),] # Remove missing responses; data will not fit with missing responses included
@@ -245,7 +216,7 @@ names(simulated)[colnames(simulated)=="i"] <- "simID"
   x = c("simID", "posLR", "negLR", "mix", "LL", "k", "n", "BIC", "AIC")
   k = 3
 
-    core<-detectCores()
+  core<-detectCores()
   cl <- parallel::makeCluster(core-2, setup_strategy = "sequential")
   setDefaultCluster(cl=cl)
   registerDoParallel(cl)
@@ -283,14 +254,13 @@ simDf<-data.frame(simPosLR = simParams$posLR,
                   fitNegLR = OLS_GraphMixRecov.ParamDf$negLR, 
                   fitMix = OLS_GraphMixRecov.ParamDf$mix)
 
-CorMat_Penalty_GraphMixRecov <- rcorr(as.matrix(simDf))
-cormat
+CorMat_GraphMixRecov <- rcorr(as.matrix(simDf))
 ```
 
 # Correlation matrix for lambda = .15, between simulated and original parameters
 
 ```{r}
-cormat <- round(CorMat_Penalty_GraphMixRecov$r,2)
+cormat <- round(CorMat_GraphMixRecov$r,2)
 cormat <- cormat[1:3,4:6]
 library(reshape2)
 melted_cormat <- melt(cormat)
@@ -326,7 +296,7 @@ ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
     size = 25) )+
  coord_fixed()
 
-greekLab <- c(expression(alpha[p]), expression(alpha[n]), expression(mu) )
+greekLab <- c(expression(alpha[p]), expression(alpha[n]), expression(phi) )
 
 FitSimHeatMap <- ggheatmap + 
 geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
@@ -360,7 +330,7 @@ set.seed(42)
 for(i in uIds){
   
   sampParams2<-c( AsymLR.ParamDf$posLR[AsymLR.ParamDf$subID == i], AsymLR.ParamDf$negLR[AsymLR.ParamDf$subID == i], AsymLR.ParamDf$mix[AsymLR.ParamDf$subID == i] )
-  curSim<-cGraphMixParamRecov(sampParams2, type = "in")
+  curSim<-graphMixParamRecov(sampParams2, type = "in", graph = posGraph)
   subID <- i
   sampParams2<-c(sampParams2, subID)
   curSim <- cbind(curSim, subID)
@@ -418,96 +388,15 @@ stopCluster(cl)
 OLS_GraphMixRecov2.ParamDf <- result
 ```
 
-# Time 2 evaluations with simulated behavior
-
-```{r}
-simulated2 <- simulated2[order(simulated2$subID, simulated2$trialNum),]
-uIds <- unique(simulated2$subID)
-uTrait <- unique(simulated2$Idx)
-simulated2$valEstF <- NA
-for(i in uIds){
-  subDf <- simulated2[simulated2$subID==i,]
-  for(j in uTrait){
-    maxVal.PE <- subDf[nrow(subDf), paste0("wpe",j)]
-    simulated2$valEstPE[simulated2$subID == i & simulated2$Idx==j] <- maxVal.PE
-    
-    maxVal.S <- subDf[nrow(subDf), paste0("ws",j)]
-    simulated2$valEstS[simulated2$subID == i & simulated2$Idx==j] <- maxVal.S
-    
-    maxVal <- OLS_GraphMixRecov2.ParamDf$mix[OLS_GraphMixRecov2.ParamDf$simID==i] * maxVal.PE + (1 - OLS_GraphMixRecov2.ParamDf$mix[OLS_GraphMixRecov2.ParamDf$simID==i]) * maxVal.S
-    
-    simulated2$valEstF[simulated2$subID == i & simulated2$Idx==j] <- maxVal
-  }
-}
-simulated2 <- simulated2[order(simulated2$subID, simulated2$trialNum),]
-simulated2$SR2f <- round(simulated2$valEstF + rnorm(nrow(simulated2),0,1.5), digits=0)
-simulated2$SR2pe <- round(simulated2$valEstPE + rnorm(nrow(simulated2),0,1.5), digits=0)
-simulated2$SR2s <- round(simulated2$valEstS + rnorm(nrow(simulated2),0,1.5), digits=0)
-```
-
-# ANOVA with simulated data
-
-```{r}
-Sim_agDf1 <- Rmisc::summarySE(simulated2, measurevar=c("SR"), groupvars=c("subID","clustType"))
-Sim_agDf2 <- Rmisc::summarySE(simulated2, measurevar=c("SR2f"), groupvars=c("subID","clustType"))
-
-Sim_agDf1 <- Sim_agDf1[c(1:2,4)]
-names(Sim_agDf1) <- c("subID", "cluster", "T1")
-Sim_agDf1 <- Sim_agDf1[order(Sim_agDf1$subID, Sim_agDf1$cluster),]
-Sim_agDf1$sim <- 1
-
-Sim_agDf2 <- Sim_agDf2[c(1:2,4)]
-names(Sim_agDf2) <- c("subID", "cluster", "T2")
-Sim_agDf2 <- Sim_agDf2[order(Sim_agDf2$subID, Sim_agDf2$cluster),]
-Sim_agDf2$sim <- 1
-
-real_ag <- read.csv("~/Google Drive/Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/output/agDf.csv")
-real_agT1 <- real_ag[1:3]
-real_agT1 <- real_agT1[order(real_agT1$subID, real_agT1$cluster),]
-real_agT1$sim <- 0
-real_agT2 <- real_ag[c(1:2,4)]
-real_agT2 <- real_agT2[order(real_agT2$subID, real_agT2$cluster),]
-real_agT2$sim <- 0
-
-real_ag <- merge(real_agT1, real_agT2[1:3], by = c("subID","cluster"))
-sim_ag <- merge(Sim_agDf1, Sim_agDf2[1:3], by = c("subID","cluster"))
-
-simAOVDF <- data.frame(sim_ag[c(1,2,4)], stack(sim_ag[c(3,5)]))
-simAOVDF$cluster<-as.factor(simAOVDF$cluster)
-names(simAOVDF)[colnames(simAOVDF)=="ind"] <- "time"
-simAOVDF$time <- as.factor(simAOVDF$time)
-simAOVDF$subID<- as.factor(simAOVDF$subID)
-m <- ez::ezANOVA(data = simAOVDF, dv = values, wid = subID, within = .(cluster, time), type = 3, detailed = TRUE)
-m<-psychReport::aovEffectSize(m, "pes")
-m
-```
-
-```{r}
-plotsim <- Rmisc::summarySE(simAOVDF, measure="values", groupvars = c("cluster","time"))
-lineP <- ggplot(plotsim, aes(x=time, y=values, group=as.factor(cluster), color=as.factor(cluster), linetype=as.factor(cluster) )) +
-  geom_line() +
-  geom_point()+
-  geom_errorbar(aes(ymin=values-se, ymax=values+se), width=.2,
-                 position=position_dodge(0.05)) + labs(x="Time", y = "Self-Evaluation") + scale_x_discrete(labels= c("T1", "T2")) + scale_color_manual(labels = c("90%","70%","50%", "30%", "10%"), values=c("red","green","blue","orange","purple")) + scale_linetype_discrete(labels = c("90%","70%","50%", "30%", "10%")) +
-  theme(
-    legend.position = c(.01, .2),
-    legend.justification = c("left", "bottom"),
-    legend.box.just = "left",
-    legend.margin = margin(6, 6, 6, 6)
-    ) + theme(axis.text=element_text(size=9),
-        axis.title=element_text(size=9,face="bold")) + theme(legend.text = element_text(size=9)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-panel.background = element_blank(), axis.line = element_line(colour = "black")) + theme(legend.key = element_rect(fill = "white"))
-
-lineP
-```
-
-
 # Plots between original and simulated (generated from original) parameters
 
 
 ```{r}
-#simParams2 <- simParams2[order(simParams2$simID),]
-simDf2<-data.frame(simPosLR = OLS_GraphMixRecov2.ParamDf$posLR, simNegLR = OLS_GraphMixRecov2.ParamDf$negLR, simMix = OLS_GraphMixRecov2.ParamDf$mix, fitPosLR = simParams2$posLR, fitNegLR = simParams2$negLR, fitMix = simParams2$mix)
+simParams2 <- simParams2[order(simParams2$subID),]
+simDf2<-data.frame(fitPosLR = OLS_GraphMixRecov2.ParamDf$posLR, fitNegLR = OLS_GraphMixRecov2.ParamDf$negLR, fitMix = OLS_GraphMixRecov2.ParamDf$mix, 
+                   #fitPosLR = AsymLR.ParamDf$posLR, fitNegLR = AsymLR.ParamDf$negLR, fitMix = AsymLR.ParamDf$mix)
+                   simPosLR = simParams2$posLR, simNegLR = simParams2$negLR, simMix = simParams2$mix)
+
 corTrueSim <- rcorr(as.matrix(simDf2))
 corTrueSim
 
@@ -528,7 +417,10 @@ ggplot(simDf2, aes(x=simNegLR, y=fitNegLR)) +
 
 ```{r}
 cormat <- round(corTrueSim$r,2)
-cormat <- cormat[1:3,4:6]
+# cormat <- cormat[1:3,4:6] # I originally had it this way...
+# cormat
+cormat <- cormat[c(4:6),c(1:3)] # Changed it to this to pivot "Fitted" to x-axis
+cormat
 library(reshape2)
 melted_cormat <- melt(cormat)
   get_lower_tri<-function(cormat){
@@ -564,7 +456,7 @@ ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
     size = 25) )+
  coord_fixed()
 
-greekLab <- c(expression(alpha[p]), expression(alpha[n]), expression(mu) )
+greekLab <- c(expression(alpha[p]), expression(alpha[n]), expression(phi) )
 
 OrigFitHeatMap <- ggheatmap + 
 geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
@@ -579,7 +471,7 @@ theme(
   legend.position = c(0.48, 0.7),
   legend.direction = "horizontal")+
   guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
-                title.position = "top", title.hjust = 0.5)) + xlab("Original") + ylab("Fitted") +
+                title.position = "top", title.hjust = 0.5)) + xlab("Fitted") + ylab("Original") +
   scale_x_discrete(
         labels=greekLab)  +
   scale_y_discrete(
@@ -593,7 +485,8 @@ ggpubr::ggarrange(OrigOrigHeatMap, FitSimHeatMap, OrigFitHeatMap,
           ncol = 3, nrow = 1, common.legend = T, legend = "top", labels = c("A","B","C"))
 
 
-ggsave("corrHeatMaps.jpg", units = "in", dpi = 600, width = 10, height = 4)
+ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/corrHeatMaps.png", units = "in", dpi = 600, width = 10, height = 4)
+ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/corrHeatMaps.tiff", units = "in", dpi = 600, width = 10, height = 4)
 ```
 
 
