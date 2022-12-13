@@ -14,11 +14,92 @@ tBt_Df$clustType <- as.factor(tBt_Df$clustType)
 
 ```
 
+
 ```{r}
 tBt_Df2 <- tBt_Df %>% select(subID,trialTotalT1,valEst,selfRespT1) %>% pivot_longer(cols=c(valEst,selfRespT1), names_to="respType", values_to = "resp", )
 ggplot(tBt_Df2, aes(x=trialTotalT1, y=resp )) +
   geom_line(aes(linetype=respType))
 ```
+```{r}
+se <- function(a){
+  sd(a, na.rm=TRUE)/sqrt(length(na.omit(a)))
+}
+aggrPreds <- tBt_Df %>% group_by(trialTotalT1) %>% summarise(predErrorM = mean(predError, na.rm=T),
+                                                             predErrorSD = sd(predError, na.rm=T),
+                                                             predErrorSE = se(predError)
+                                                             )
+ggplot(aggrPreds, aes(x=trialTotalT1, ymin=(predErrorM-predErrorSE), ymax=(predErrorSE+predErrorM), y=predErrorM )) +
+  geom_line() +
+  geom_ribbon(alpha=.25)
+```
+
+
+```{r}
+se <- function(a){
+  sd(a, na.rm=TRUE)/sqrt(length(na.omit(a)))
+}
+aggrPreds <- tBt_Df %>% mutate(truePE = abs(feedback - valEst)) %>% group_by(trialTotalT1) %>% summarise(predErrorM = mean(truePE, na.rm=T),
+                                                             predErrorSD = sd(truePE, na.rm=T),
+                                                             predErrorSE = se(truePE)
+                                                             )
+
+cor.test(aggrPreds$trialTotalT1, aggrPreds$predErrorM, method="spearman")
+ggplot(aggrPreds, aes(x=trialTotalT1, ymin=(predErrorM-predErrorSE), ymax=(predErrorSE+predErrorM), y=predErrorM )) +
+  geom_line() +
+  geom_ribbon(alpha=.25) +
+  geom_smooth(method="lm")
+```
+
+
+```{r}
+se <- function(a){
+  sd(a, na.rm=TRUE)/sqrt(length(na.omit(a)))
+}
+aggrPreds <- tBt_Df %>% group_by(trialTotalT1, clustType) %>% summarise(predErrorM = mean(predError, na.rm=T),
+                                                             predErrorSD = sd(predError, na.rm=T),
+                                                             predErrorSE = se(predError)
+                                                             )
+ggplot(aggrPreds, aes(x=trialTotalT1, ymin=(predErrorM-predErrorSE), ymax=(predErrorSE+predErrorM), y=predErrorM, color=clustType )) +
+  geom_line() +
+  geom_ribbon(alpha=.25)
+
+ggplot(aggrPreds, aes(x=trialTotalT1, y=predErrorM, color=clustType )) +
+  geom_line()
+```
+
+```{r}
+se <- function(a){
+  sd(a, na.rm=TRUE)/sqrt(length(na.omit(a)))
+}
+aggrPreds <- tBt_Df %>% mutate(valEstC = ifelse(valEst >= 4, "PosVE", "NegVE")) %>% group_by(trialTotalT1, valEstC) %>% summarise(predErrorM = mean(predError, na.rm=T),
+                                                             predErrorSD = sd(predError, na.rm=T),
+                                                             predErrorSE = se(predError)
+                                                             )
+ggplot(aggrPreds, aes(x=trialTotalT1, y=predErrorM, color=valEstC )) +
+  geom_line()
+```
+
+```{r}
+se <- function(a){
+  sd(a, na.rm=TRUE)/sqrt(length(na.omit(a)))
+}
+aggrPreds <- tBt_Df %>% 
+  mutate(truePE = feedback - valEst,
+         aTruePE = abs(truePE)) %>%
+  mutate(PN = ifelse(truePE >= 0, "P", "N")) %>%
+  group_by(trialTotalT1, PN) %>% summarise(predErrorM = mean(truePE, na.rm=T),
+                                                             predErrorSD = sd(truePE, na.rm=T),
+                                                             predErrorSE = se(truePE)
+                                                             )
+
+cor.test(aggrPreds$trialTotalT1, aggrPreds$predErrorM, method="spearman")
+ggplot(aggrPreds, aes(x=trialTotalT1, ymin=(predErrorM-predErrorSE), ymax=(predErrorSE+predErrorM), y=predErrorM, color=PN )) +
+  geom_line() +
+  geom_ribbon(alpha=.25) +
+  geom_smooth(method="lm")
+```
+
+
 
 
 ```{r}
@@ -48,16 +129,23 @@ ggplot(aggPredsL, aes(x=trialTotalT1, y=resp, color=as.factor(clustType) )) +
 ```
 
 ```{r}
-# tBt_Df$valEst <- scale(tBt_Df$valEst)
-# tBt_Df$selfRespT1 <- scale(tBt_Df$selfRespT1)
-aggrPreds <- tBt_Df %>% group_by(trialTotalT1,clustType) %>% summarise(valEstM = mean(valEst, na.rm=T),
+tBt_Df <-
+  tBt_Df %>% mutate(trialGroup =
+                    case_when(trialTotalT1 < 25 ~ 1,
+                     trialTotalT1 >= 25 & trialTotalT1 < 50 ~ 2,
+                     trialTotalT1 >= 50 & trialTotalT1 < 75 ~ 4,
+                     trialTotalT1 >= 75 & trialTotalT1 < 100 ~ 5,
+                     trialTotalT1 >= 100 & trialTotalT1 < 125 ~ 6,
+                     trialTotalT1 >= 125 & trialTotalT1 <= 148 ~ 7)
+)
+aggrPreds <- tBt_Df %>% group_by(trialGroup,clustType) %>% summarise(valEstM = mean(valEst, na.rm=T),
                                                 selfRespM = mean(selfRespT1, na.rm=T))
 aggPredsL <- aggrPreds %>% pivot_longer(cols=valEstM:selfRespM, names_to="respType", values_to = "resp", )
 #aggPredsL$clustType <- as.factor(aggPredsL$clustType)
 ```
 
 ```{r}
-ggplot(aggPredsL, aes(x=trialTotalT1, y=resp, color=as.factor(clustType) )) +
+ggplot(aggPredsL, aes(x=trialGroup, y=resp, color=as.factor(clustType) )) +
   geom_line(aes(linetype=respType))
 ```
 
@@ -99,6 +187,32 @@ library(ggpubr)
 ggarrange(Plot1,Plot2,Plot3,Plot4,nrow=2,ncol=2)
 ggsave("~/Desktop/learningFigs.png",height=10,width=18,units="in")
 ```
+
+```{r}
+se <- function(a){
+  sd(a, na.rm=TRUE)/sqrt(length(na.omit(a)))
+}
+aggrPreds <- tBt_Df %>% group_by(trialTotalT1) %>% summarise(predErrorM = mean(predError, na.rm=T),
+                                                             predErrorSD = sd(predError, na.rm=T),
+                                                             predErrorSE = se(predError)
+                                                             )
+
+
+top10 <- GraphMix.ParamDf %>% arrange(AIC) %>% head(n=10) %>% pull(subID)
+for(i in 1:length(top10)){
+  n<-top10[i]
+  sub <- subset(tBt_Df, subID==n)
+  subs <- sub %>% select(trialTotalT1, predError)
+  p <- ggplot(subs, aes(x=trialTotalT1, y=predError )) +
+  geom_line()
+  assign(paste0("Plot",i),p)
+}
+
+library(ggpubr)
+ggarrange(Plot1,Plot2,Plot3,Plot4,nrow=2,ncol=2)
+ggsave("~/Desktop/learningFigs.png",height=10,width=18,units="in")
+```
+
 
 
 ```{r}

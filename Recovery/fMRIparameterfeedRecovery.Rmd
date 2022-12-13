@@ -481,13 +481,73 @@ OrigFitHeatMap
 ```
 
 ```{r}
-ggpubr::ggarrange(OrigOrigHeatMap, FitSimHeatMap, OrigFitHeatMap,
+CONFUSE <- ggpubr::ggarrange(OrigOrigHeatMap, FitSimHeatMap, OrigFitHeatMap,
           ncol = 3, nrow = 1, common.legend = T, legend = "top", labels = c("A","B","C"))
 
 
-ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/corrHeatMaps.png", units = "in", dpi = 600, width = 10, height = 4)
-ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/corrHeatMaps.tiff", units = "in", dpi = 600, width = 10, height = 4)
+ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/corrHeatMaps.png", units = "in", dpi = 600, width = 10, height = 4)
+ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/corrHeatMaps.tiff", units = "in", dpi = 600, width = 10, height = 4)
 ```
+
+```{r}
+setwd("/Volumes/GoogleDrive/My Drive/Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/output/")
+tBt_Df <- read.csv("trialBytrial.Df.csv")
+se <- function(a){
+  sd(a, na.rm=TRUE)/sqrt(length(na.omit(a)))
+}
+aggrPreds <- tBt_Df %>% mutate(truePE = abs(feedback - valEst)) %>% group_by(trialTotalT1) %>% summarise(predErrorM = mean(truePE, na.rm=T),
+                                                             predErrorSD = sd(truePE, na.rm=T),
+                                                             predErrorSE = se(truePE)
+                                                             )
+
+corReal = cor.test(aggrPreds$trialTotalT1, aggrPreds$predErrorM, method="spearman")
+corReal
+
+REAL_tbt <- ggplot(aggrPreds, aes(x=trialTotalT1, ymin=(predErrorM-predErrorSE), ymax=(predErrorSE+predErrorM), y=predErrorM )) +
+  geom_line() +
+  geom_ribbon(alpha=.25) +
+  geom_smooth(method="lm",color="black",se=F) +
+  xlab("Trial Number") + ylab("Average Absolute PE") + 
+  jtools::theme_apa()
+```
+
+```{r}
+aggrPreds <- simulated %>% mutate(truePE = abs(feedback - Value)) %>% group_by(trialNum) %>% summarise(predErrorM = mean(truePE, na.rm=T),
+                                                             predErrorSD = sd(truePE, na.rm=T),
+                                                             predErrorSE = se(truePE)
+                                                             )
+
+cor.test(aggrPreds$trialNum, aggrPreds$predErrorM, method="spearman")
+SIMSIM_tbt <- ggplot(aggrPreds, aes(x=trialNum, ymin=(predErrorM-predErrorSE), ymax=(predErrorSE+predErrorM), y=predErrorM )) +
+  geom_line() +
+  geom_ribbon(alpha=.25) +
+  geom_smooth(method="lm",color="black",se=F) +
+  xlab("Trial Number") + ylab("Average Absolute PE") + jtools::theme_apa()
+```
+
+```{r}
+aggrPreds <- simulated2 %>% mutate(truePE = abs(feedback - Value)) %>% group_by(trialNum) %>% summarise(predErrorM = mean(truePE, na.rm=T),
+                                                             predErrorSD = sd(truePE, na.rm=T),
+                                                             predErrorSE = se(truePE)
+                                                             )
+
+cor.test(aggrPreds$trialNum, aggrPreds$predErrorM, method="spearman")
+SIMREAL_tbt <- ggplot(aggrPreds, aes(x=trialNum, ymin=(predErrorM-predErrorSE), ymax=(predErrorSE+predErrorM), y=predErrorM )) +
+  geom_line() +
+  geom_ribbon(alpha=.25) +
+  geom_smooth(method="lm",color="black",se=F) +
+  xlab("Trial Number") + ylab("Average Absolute PE") + jtools::theme_apa()
+```
+
+
+```{r}
+ggarrange(nrow=2,ncol=1, REAL_tbt, CONFUSE)
+#ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/learnAndConfusion.png", units = "in", dpi = 600, width = 10, height = 14)
+#ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/PlotslearnAndConfusion.tiff", units = "in", dpi = 600, width = 10, height = 14)
+ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/learnAndConfusion.png", units = "in", dpi = 600, width = 7, height = 9.8)
+ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/PlotslearnAndConfusion.tiff", units = "in", dpi = 600, width = 7, height = 9.8)
+```
+
 
 
 
