@@ -492,6 +492,7 @@ ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/corrHeat
 ```{r}
 setwd("/Volumes/GoogleDrive/My Drive/Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/output/")
 tBt_Df <- read.csv("trialBytrial.Df.csv")
+
 se <- function(a){
   sd(a, na.rm=TRUE)/sqrt(length(na.omit(a)))
 }
@@ -545,12 +546,15 @@ ggarrange(nrow=2,ncol=1, REAL_tbt, CONFUSE)
 #ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/learnAndConfusion.png", units = "in", dpi = 600, width = 10, height = 14)
 #ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/PlotslearnAndConfusion.tiff", units = "in", dpi = 600, width = 10, height = 14)
 ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/learnAndConfusion.png", units = "in", dpi = 600, width = 7, height = 9.8)
-ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/PlotslearnAndConfusion.tiff", units = "in", dpi = 600, width = 7, height = 9.8)
+ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/learnAndConfusion.tiff", units = "in", dpi = 600, width = 7, height = 9.8)
 ```
 
 
 
 
+```{r}
+# load("/Volumes/GoogleDrive/My Drive/Volumes/Research Project/Social Evaluative Feedback fMRI/Behavioral Data Analysis/finalRecovery_2022_12_06.RData")
+```
 
 
 

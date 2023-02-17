@@ -1,0 +1,85 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+ 
+load the library
+```{r}
+library(igraph)
+library(GGally)
+library(ggrepel)
+
+library(network)
+library(sna)
+library(ggplot2)
+
+library(here)
+```
+
+load adjencency matrix for positive
+```{r}
+#pos_adj <- read.csv("input/pos_adj.csv")
+pos_adj <- read.csv(here("Viz/input/adjacencyMatrix_p.csv"))
+colnames(pos_adj) <- 1:148
+pos_adj <- as.matrix(pos_adj)
+#pos_att <- read.csv("input/traitLevelAttribute_p.csv")
+pos_att <- read.csv(here("Viz/input/allPosCents.csv"))
+pos_att5 <- read.csv(here("Viz/input/allPosCents5CLUSTER.csv"))
+# generate graph object from the matrix
+graph_pos <- graph_from_adjacency_matrix(pos_adj, mode = "directed", weighted=NULL)
+V(graph_pos)$tNames <- pos_att$trait
+pos_att$traitFriendly <- pos_att$trait
+pos_att$traitFriendly[pos_att$traitFriendly!="Friendly"] <- ""
+V(graph_pos)$FriendlyName <- pos_att$traitFriendly
+V(graph_pos)$cluster <- pos_att5$cluster
+```
+
+
+# Focus on "Friendly" - High outdegree centrality trait
+
+```{r}
+FriendlyNet <- ego(graph_pos, order = 1, nodes = 46, mode = "out",
+  mindist = 0)
+FriendlyNet <- induced.subgraph(graph_pos, vids = unlist(FriendlyNet) )
+
+set.seed(2)
+
+egoNet <- ggnet2(FriendlyNet, size = "outdegree",  color = "dodgerblue",  palette = "Set2", mode = "fruchtermanreingold", directed=TRUE, arrow.size = 3, arrow.gap = 0.025, layout.exp = .35, alpha = .7, edge.alpha = .45) + 
+  guides(color = FALSE, size = FALSE) + geom_text_repel(aes(label = V(FriendlyNet)$tNames), size = 3.5, force = .025, fontface = "bold")
+egoNet
+
+ggsave(egoNet, file = "/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/outdegreeNet.png", units = "in", dpi = 600, width= 6, height = 4)
+
+ggsave(egoNet, file = "/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/outdegreeNet.tiff", units = "in", dpi = 600, width= 6, height = 4)
+```
+
+
+# Feedback Community Colored
+
+```{r}
+library(wesanderson)
+
+graph_pos2 <- intergraph::asNetwork(graph_pos)
+graph_pos2 %v% "cluster" = as.character(V(graph_pos)$cluster)
+
+set.seed(5)
+
+p1 <- ggnet2(graph_pos2, size = "outdegree",  color = "cluster", palette = "Dark2", mode = "kamadakawai", directed=TRUE, layout.exp = .65, alpha = .7, edge.alpha = .25) +
+  guides(color = FALSE, size = FALSE)
+p1
+
+ggsave(p1, file = "/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/colorNet.png", units = "in", dpi = 600, width= 6, height = 4)
+
+ggsave(p1, file = "/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/colorNet.tiff", units = "in", dpi = 600, width= 6, height = 4)
+```
+
+```{r}
+stack <- ggpubr::ggarrange(p1, egoNet, ncol=1, nrow=2)
+
+ggsave(stack, file = "/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/stackNetwork.png", dpi = 600, units = "in", width= 8, height = 10)
+
+ggsave(stack, file = "/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/stackNetwork.tiff", dpi = 600, units = "in", width= 8, height = 10)
+```
+
+
