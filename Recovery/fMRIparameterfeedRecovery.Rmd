@@ -546,7 +546,7 @@ ggarrange(nrow=2,ncol=1, REAL_tbt, CONFUSE)
 #ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/learnAndConfusion.png", units = "in", dpi = 600, width = 10, height = 14)
 #ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/PlotslearnAndConfusion.tiff", units = "in", dpi = 600, width = 10, height = 14)
 ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/learnAndConfusion.png", units = "in", dpi = 600, width = 7, height = 9.8)
-ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/learnAndConfusion.tiff", units = "in", dpi = 600, width = 7, height = 9.8)
+ggsave("/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/learnAndConfusion.tiff", units = "in", dpi = 200, width = 7, height = 9.8)
 ```
 
 
