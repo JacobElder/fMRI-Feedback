@@ -52,6 +52,10 @@ egoNet
 ggsave(egoNet, file = "/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/outdegreeNet.png", units = "in", dpi = 600, width= 6, height = 4)
 
 ggsave(egoNet, file = "/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/outdegreeNet.tiff", units = "in", dpi = 600, width= 6, height = 4)
+
+ggsave(egoNet, file = "~/Desktop/Cover_outdegreeNet.png", units = "in", dpi = 300, width= 9, height = 11.25)
+
+ggsave(egoNet, file = "~/Desktop/Cover_outdegreeNet.tiff", units = "in", dpi = 300, width= 9, height = 11.25)
 ```
 
 
@@ -72,6 +76,10 @@ p1
 ggsave(p1, file = "/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/colorNet.png", units = "in", dpi = 600, width= 6, height = 4)
 
 ggsave(p1, file = "/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/colorNet.tiff", units = "in", dpi = 600, width= 6, height = 4)
+
+ggsave(p1, file = "~/Desktop/Cover_colorNet.tiff", units = "in", dpi = 300, width= 9, height = 11.25)
+
+ggsave(p1, file = "~/Desktop/Cover_colorNet.png", units = "in", dpi = 300, width= 9, height = 11.25)
 ```
 
 ```{r}
@@ -80,6 +88,10 @@ stack <- ggpubr::ggarrange(p1, egoNet, ncol=1, nrow=2)
 ggsave(stack, file = "/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/stackNetwork.png", dpi = 600, units = "in", width= 8, height = 10)
 
 ggsave(stack, file = "/Volumes/Research Project/Social Evaluative Feedback fMRI/Plots/stackNetwork.tiff", dpi = 600, units = "in", width= 8, height = 10)
+
+ggsave(stack, file = "~/Desktop/Cover_stackNetwork.png", dpi = 600, units = "in", width= 9, height = 11.25)
+
+ggsave(stack, file = "~/Desktop/Cover_stackNetwork.tiff", dpi = 600, units = "in", width= 9, height = 11.25)
 ```
 
 
